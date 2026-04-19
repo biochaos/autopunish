@@ -1,0 +1,15 @@
+# Enforce LF line endings for all files
+* text=auto eol=lf
+
+# Exclude development files from release archives
+SPEC.md             export-ignore
+TEST_ENV.md         export-ignore
+SYMLINKS.md         export-ignore
+FORUM_CUSTOMIZATIONS.md export-ignore
+CODE_REVIEW_ISSUES.md   export-ignore
+PUBLIC_RELEASE_CHECKLIST.md export-ignore
+TODO.md             export-ignore
+.gitattributes      export-ignore
+.gitignore          export-ignore
+test-env/           export-ignore
+customization/      export-ignore

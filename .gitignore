@@ -1,0 +1,9 @@
+customization/
+test-env/
+old exts/
+bugs.md
+FORUM_CUSTOMIZATIONS.md
+SPEC.md
+SYMLINKS.md
+TEST_ENV.md
+.claude/
