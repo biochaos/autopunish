@@ -1,0 +1,79 @@
+services:
+
+    biochaos.autopunish.tier_manager:
+        class: biochaos\autopunish\service\tier_manager
+        arguments:
+            - '@dbal.conn'
+            - '%tables.autopunish_tiers%'
+
+    biochaos.autopunish.punishment_manager:
+        class: biochaos\autopunish\service\punishment_manager
+        arguments:
+            - '@dbal.conn'
+            - '@config'
+            - '@group_helper'
+            - '@log'
+            - '@notification_manager'
+            - '@user'
+            - '@biochaos.autopunish.tier_manager'
+            - '%tables.autopunish_punishments%'
+            - '%tables.autopunish_commutations%'
+            - '%core.root_path%'
+            - '%core.php_ext%'
+
+    biochaos.autopunish.retroactive_scanner:
+        class: biochaos\autopunish\service\retroactive_scanner
+        arguments:
+            - '@dbal.conn'
+            - '@config'
+            - '@log'
+            - '@biochaos.autopunish.punishment_manager'
+            - '@biochaos.autopunish.tier_manager'
+            - '%tables.autopunish_punishments%'
+            - '%tables.autopunish_commutations%'
+
+    biochaos.autopunish.listener:
+        class: biochaos\autopunish\event\main_listener
+        arguments:
+            - '@config'
+            - '@biochaos.autopunish.punishment_manager'
+            - '@biochaos.autopunish.tier_manager'
+            - '@template'
+            - '@user'
+            - '@request'
+        tags:
+            - { name: event.listener }
+
+    biochaos.autopunish.cron.expire_punishments:
+        class: biochaos\autopunish\cron\task\expire_punishments
+        arguments:
+            - '@config'
+            - '@biochaos.autopunish.punishment_manager'
+        tags:
+            - { name: cron.task }
+
+    biochaos.autopunish.notification.punishment_applied:
+        class: biochaos\autopunish\notification\type\punishment_applied
+        parent: notification.type.base
+        shared: false
+        tags:
+            - { name: notification.type }
+
+    biochaos.autopunish.notification.punishment_expired:
+        class: biochaos\autopunish\notification\type\punishment_expired
+        parent: notification.type.base
+        shared: false
+        tags:
+            - { name: notification.type }
+
+    biochaos.autopunish.notification.punishment_commuted:
+        class: biochaos\autopunish\notification\type\punishment_commuted
+        parent: notification.type.base
+        shared: false
+        tags:
+            - { name: notification.type }
+
+parameters:
+    tables.autopunish_tiers:        '%core.table_prefix%autopunish_tiers'
+    tables.autopunish_punishments:  '%core.table_prefix%autopunish_punishments'
+    tables.autopunish_commutations: '%core.table_prefix%autopunish_commutations'

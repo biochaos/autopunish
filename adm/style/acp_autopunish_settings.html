@@ -1,0 +1,244 @@
+<!-- INCLUDE overall_header.html -->
+
+<h1>{L_ACP_AUTOPUNISH_SETTINGS}</h1>
+
+<form method="post" action="{U_ACTION}">
+
+<fieldset>
+	<legend>{L_AUTOPUNISH_GENERAL}</legend>
+
+	<dl>
+		<dt><label for="autopunish_enabled">{L_AUTOPUNISH_ENABLED}</label></dt>
+		<dd><input type="checkbox" id="autopunish_enabled" name="autopunish_enabled" value="1"<!-- IF S_AUTOPUNISH_ENABLED --> checked="checked"<!-- ENDIF --> /></dd>
+	</dl>
+
+	<dl>
+		<dt><label for="autopunish_warn_during_punishment">{L_AUTOPUNISH_WARN_DURING_PUNISHMENT}</label></dt>
+		<dd>
+			<select id="autopunish_warn_during_punishment" name="autopunish_warn_during_punishment">
+				<option value="restart"<!-- IF AUTOPUNISH_WARN_DURING_PUNISHMENT == 'restart' --> selected="selected"<!-- ENDIF -->>{L_AUTOPUNISH_WDP_RESTART}</option>
+				<option value="normal"<!-- IF AUTOPUNISH_WARN_DURING_PUNISHMENT == 'normal' --> selected="selected"<!-- ENDIF -->>{L_AUTOPUNISH_WDP_NORMAL}</option>
+				<option value="escalate"<!-- IF AUTOPUNISH_WARN_DURING_PUNISHMENT == 'escalate' --> selected="selected"<!-- ENDIF -->>{L_AUTOPUNISH_WDP_ESCALATE}</option>
+			</select>
+		</dd>
+	</dl>
+
+	<dl>
+		<dt><label for="autopunish_cron_interval">{L_AUTOPUNISH_CRON_INTERVAL}</label></dt>
+		<dd><input type="number" id="autopunish_cron_interval" name="autopunish_cron_interval" value="{AUTOPUNISH_CRON_INTERVAL}" min="1" size="5" /> {L_AUTOPUNISH_MINUTES}</dd>
+	</dl>
+
+	<dl>
+		<dt><label for="autopunish_exempt_groups">{L_AUTOPUNISH_EXEMPT_GROUPS}</label></dt>
+		<dd>
+			<select id="autopunish_exempt_groups" name="autopunish_exempt_groups[]" multiple="multiple" size="6">
+				<!-- BEGIN groups -->
+				<option value="{groups.ID}"<!-- IF groups.SELECTED --> selected="selected"<!-- ENDIF -->>{groups.NAME}</option>
+				<!-- END groups -->
+			</select>
+		</dd>
+	</dl>
+
+	<dl>
+		<dt><label for="autopunish_dry_run">{L_AUTOPUNISH_DRY_RUN}</label></dt>
+		<dd>
+			<input type="checkbox" id="autopunish_dry_run" name="autopunish_dry_run" value="1"<!-- IF S_AUTOPUNISH_DRY_RUN --> checked="checked"<!-- ENDIF --> />
+			<span class="helpline">{L_AUTOPUNISH_DRY_RUN_EXPLAIN}</span>
+		</dd>
+	</dl>
+
+	<dl>
+		<dt><label for="autopunish_retroactive">{L_AUTOPUNISH_RETROACTIVE}</label></dt>
+		<dd>
+			<input type="checkbox" id="autopunish_retroactive" name="autopunish_retroactive" value="1" />
+			<span class="helpline">{L_AUTOPUNISH_RETROACTIVE_EXPLAIN}</span>
+		</dd>
+	</dl>
+</fieldset>
+
+<fieldset>
+	<legend>{L_AUTOPUNISH_NOTIFICATIONS}</legend>
+
+	<dl>
+		<dt><label for="autopunish_notify_forum">{L_AUTOPUNISH_NOTIFY_FORUM}</label></dt>
+		<dd><input type="checkbox" id="autopunish_notify_forum" name="autopunish_notify_forum" value="1"<!-- IF S_AUTOPUNISH_NOTIFY_FORUM --> checked="checked"<!-- ENDIF --> /></dd>
+	</dl>
+
+	<dl>
+		<dt><label for="autopunish_notify_pm">{L_AUTOPUNISH_NOTIFY_PM}</label></dt>
+		<dd><input type="checkbox" id="autopunish_notify_pm" name="autopunish_notify_pm" value="1"<!-- IF S_AUTOPUNISH_NOTIFY_PM --> checked="checked"<!-- ENDIF --> /></dd>
+	</dl>
+
+	<dl>
+		<dt><label for="autopunish_notify_email">{L_AUTOPUNISH_NOTIFY_EMAIL}</label></dt>
+		<dd><input type="checkbox" id="autopunish_notify_email" name="autopunish_notify_email" value="1"<!-- IF S_AUTOPUNISH_NOTIFY_EMAIL --> checked="checked"<!-- ENDIF --> /></dd>
+	</dl>
+
+	<dl>
+		<dt>
+			<label for="autopunish_notify_sender_username">{L_AUTOPUNISH_NOTIFY_SENDER}</label>
+			<span class="helpline">{L_AUTOPUNISH_NOTIFY_SENDER_EXPLAIN}</span>
+		</dt>
+		<dd>
+			<!-- IF U_LIVE_SEARCH -->
+			<input type="text" id="autopunish_notify_sender_username" name="autopunish_notify_sender_username" value="{AUTOPUNISH_NOTIFY_SENDER_USERNAME}" class="inputbox" size="30" autocomplete="off" data-livesearch="{U_LIVE_SEARCH}" data-results="#ap-sender-results" /> <span class="helpline">(autocomplete)</span>
+			<!-- ELSE -->
+			<input type="text" id="autopunish_notify_sender_username" name="autopunish_notify_sender_username" value="{AUTOPUNISH_NOTIFY_SENDER_USERNAME}" class="inputbox" size="30" />
+			<!-- ENDIF -->
+			<!-- IF S_AUTOPUNISH_SENDER_MISSING -->
+			<span class="error">{L_AUTOPUNISH_SENDER_MISSING_WARNING}</span>
+			<!-- ENDIF -->
+		</dd>
+	</dl>
+
+<!-- IF U_LIVE_SEARCH -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+	(function ($) {
+		var $input = $('#autopunish_notify_sender_username');
+		var url    = $input.data('livesearch');
+		var timer;
+
+		/* Build the dropdown and attach it directly to <body> so no parent
+		   overflow or stacking context can clip or bury it. */
+		var $container = $(
+			'<div class="dropdown live-search hidden" id="ap-sender-results"' +
+			' style="position:fixed; z-index:99999; min-width:200px;"></div>'
+		).append(
+			'<ul class="dropdown-contents search-results">' +
+			'<li class="search-result-tpl"><span class="search-result"></span></li>' +
+			'</ul>'
+		).appendTo('body');
+
+		$('<style>' +
+			'#ap-sender-results { padding: 0; }' +
+			'#ap-sender-results .dropdown-contents { border-radius: 3px; }' +
+			'#ap-sender-results .search-results { list-style: none; margin: 0; padding: 0; }' +
+			'#ap-sender-results .search-results li { padding: 4px 8px; white-space: nowrap; cursor: pointer; }' +
+			'#ap-sender-results .search-results li:hover,' +
+			'#ap-sender-results .search-results li.active { background-color: #d5e8f6; }' +
+		'</style>').appendTo('head');
+
+		function reposition() {
+			var r = $input[0].getBoundingClientRect();
+			$container.css({ top: r.bottom + 'px', left: r.left + 'px', minWidth: r.width + 'px' });
+		}
+
+		var searchID = $input.attr('data-results');
+
+		$input.on('keyup', function () {
+			clearTimeout(timer);
+			var q = $.trim($input.val());
+			if (q.length < 2) {
+				phpbb.search.closeResults($input, $container);
+				return;
+			}
+			timer = setTimeout(function () {
+				var cache = phpbb.search.cache.get(searchID);
+
+				// Already have results for this exact query — use them.
+				if (cache && cache.results && cache.results[q]) {
+					phpbb.search.handleResponse({ keyword: q, results: cache.results[q] }, $input, true, phpbb.search.setValueOnClick);
+					return;
+				}
+
+				// Previous query returned nothing and current query only adds characters — skip.
+				if (cache && cache.lastSearch &&
+					q.indexOf(cache.lastSearch) === 0 &&
+					cache.results && cache.results[cache.lastSearch] &&
+					cache.results[cache.lastSearch].length === 0)
+				{
+					phpbb.search.cache.set(searchID, 'lastSearch', q);
+					phpbb.search.cache.setResults(searchID, q, []);
+					return;
+				}
+
+				reposition();
+				$.ajax({
+					url: url,
+					type: 'POST',
+					data: { username: q },
+					dataType: 'json',
+					success: function (res) {
+						phpbb.search.handleResponse(res, $input, false, phpbb.search.setValueOnClick);
+					}
+				});
+			}, 350);
+		});
+
+		$(document).on('click.ap-sender', function (e) {
+			if (!$(e.target).closest($input).length && !$(e.target).closest($container).length) {
+				phpbb.search.closeResults($input, $container);
+			}
+		});
+	}(jQuery));
+});
+</script>
+<!-- ENDIF -->
+
+	<dl>
+		<dt>
+			<label for="autopunish_notify_subject">{L_AUTOPUNISH_NOTIFY_SUBJECT}</label>
+			<span class="helpline">{L_AUTOPUNISH_NOTIFY_SUBJECT_EXPLAIN}</span>
+		</dt>
+		<dd>
+			<input type="text" id="autopunish_notify_subject" name="autopunish_notify_subject" value="{AUTOPUNISH_NOTIFY_SUBJECT}" class="inputbox" size="60" /><br />
+			<span class="helpline">{L_AUTOPUNISH_PLACEHOLDERS_EXPLAIN}</span>
+		</dd>
+	</dl>
+
+	<dl>
+		<dt><label for="autopunish_notify_footer">{L_AUTOPUNISH_NOTIFY_FOOTER}</label></dt>
+		<dd>
+			<textarea id="autopunish_notify_footer" name="autopunish_notify_footer" rows="3" cols="60">{AUTOPUNISH_NOTIFY_FOOTER}</textarea><br />
+			<span class="helpline">{L_AUTOPUNISH_PLACEHOLDERS_EXPLAIN}</span>
+		</dd>
+	</dl>
+
+	<dl>
+		<dt>
+			<label for="autopunish_notify_expiry_subject">{L_AUTOPUNISH_NOTIFY_EXPIRY_SUBJECT}</label>
+			<span class="helpline">{L_AUTOPUNISH_NOTIFY_EXPIRY_SUBJECT_EXPLAIN}</span>
+		</dt>
+		<dd>
+			<input type="text" id="autopunish_notify_expiry_subject" name="autopunish_notify_expiry_subject" value="{AUTOPUNISH_NOTIFY_EXPIRY_SUBJECT}" class="inputbox" size="60" /><br />
+			<span class="helpline">{L_AUTOPUNISH_PLACEHOLDERS_EXPLAIN}</span>
+		</dd>
+	</dl>
+
+	<dl>
+		<dt><label for="autopunish_notify_expiry_text">{L_AUTOPUNISH_NOTIFY_EXPIRY_TEXT}</label></dt>
+		<dd>
+			<textarea id="autopunish_notify_expiry_text" name="autopunish_notify_expiry_text" rows="3" cols="60">{AUTOPUNISH_NOTIFY_EXPIRY_TEXT}</textarea><br />
+			<span class="helpline">{L_AUTOPUNISH_PLACEHOLDERS_EXPLAIN}</span>
+		</dd>
+	</dl>
+
+	<dl>
+		<dt>
+			<label for="autopunish_notify_commute_subject">{L_AUTOPUNISH_NOTIFY_COMMUTE_SUBJECT}</label>
+			<span class="helpline">{L_AUTOPUNISH_NOTIFY_COMMUTE_SUBJECT_EXPLAIN}</span>
+		</dt>
+		<dd>
+			<input type="text" id="autopunish_notify_commute_subject" name="autopunish_notify_commute_subject" value="{AUTOPUNISH_NOTIFY_COMMUTE_SUBJECT}" class="inputbox" size="60" /><br />
+			<span class="helpline">{L_AUTOPUNISH_PLACEHOLDERS_EXPLAIN}</span>
+		</dd>
+	</dl>
+
+	<dl>
+		<dt><label for="autopunish_notify_commute_text">{L_AUTOPUNISH_NOTIFY_COMMUTE_TEXT}</label></dt>
+		<dd>
+			<textarea id="autopunish_notify_commute_text" name="autopunish_notify_commute_text" rows="3" cols="60">{AUTOPUNISH_NOTIFY_COMMUTE_TEXT}</textarea><br />
+			<span class="helpline">{L_AUTOPUNISH_PLACEHOLDERS_EXPLAIN}</span>
+		</dd>
+	</dl>
+</fieldset>
+
+<fieldset class="submit-buttons">
+	<input type="submit" name="submit" value="{L_SUBMIT}" class="button1" />
+	{S_FORM_TOKEN}
+</fieldset>
+
+</form>
+
+<!-- INCLUDE overall_footer.html -->

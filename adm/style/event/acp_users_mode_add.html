@@ -1,0 +1,118 @@
+<!-- IF S_AUTOPUNISH_MODE -->
+
+<!-- Status summary -->
+<div class="panel">
+<div class="inner">
+<h2>{L_AUTOPUNISH_STATUS_SUMMARY}</h2>
+<table class="table1">
+	<tr><th>{L_AUTOPUNISH_CURRENT_WARNINGS}</th><td>{USER_WARNINGS}</td></tr>
+	<tr><th>{L_AUTOPUNISH_TOTAL_PUNISHMENTS}</th><td>{TOTAL_PUNISHMENTS}</td></tr>
+	<tr><th>{L_AUTOPUNISH_COMMUTED_OFFENSES}</th><td>{COMMUTED_OFFENSES}</td></tr>
+	<tr><th>{L_AUTOPUNISH_EFFECTIVE_OFFENSES}</th><td>{EFFECTIVE_OFFENSES}</td></tr>
+	<tr>
+		<th>{L_AUTOPUNISH_NEXT_OFFENSE}</th>
+		<td>
+			<!-- IF NEXT_TIER_ACTION -->
+				#{NEXT_OFFENSE_NUMBER} &mdash; {NEXT_TIER_ACTION}<!-- IF NEXT_TIER_REASON --> ({NEXT_TIER_REASON})<!-- ENDIF -->, {L_AUTOPUNISH_THRESHOLD}: &ge;{NEXT_TIER_THRESHOLD}
+				<!-- IF S_IS_REPEATING --> <em>({L_AUTOPUNISH_REPEATING})</em><!-- ENDIF -->
+			<!-- ELSE -->
+				{L_AUTOPUNISH_NO_TIERS}
+			<!-- ENDIF -->
+		</td>
+	</tr>
+	<!-- IF S_HAS_ACTIVE -->
+	<tr>
+		<th>{L_AUTOPUNISH_CURRENT_PUNISHMENT}</th>
+		<td>
+			{L_AUTOPUNISH_OFFENSE} #{ACTIVE_OFFENSE_NUMBER} &mdash; {ACTIVE_ACTION}
+			<!-- IF ACTIVE_REASON --> ({ACTIVE_REASON})<!-- ENDIF -->
+			<!-- IF ACTIVE_END_TIME -->
+				, {L_AUTOPUNISH_EXPIRES}: {ACTIVE_END_TIME}
+			<!-- ELSE -->
+				, {L_AUTOPUNISH_PERMANENT}
+			<!-- ENDIF -->
+		</td>
+	</tr>
+	<!-- ENDIF -->
+</table>
+</div>
+</div>
+
+<!-- IF S_HAS_ACTIVE -->
+<!-- End punishment early -->
+<div class="panel">
+<div class="inner">
+<h2>{L_AUTOPUNISH_END_EARLY}</h2>
+<form method="post" action="{U_ACTION}" onsubmit="return confirm('{L_AUTOPUNISH_END_EARLY_CONFIRM}')">
+	<input type="hidden" name="punishment_id" value="{ACTIVE_PUNISHMENT_ID}" />
+	<input type="hidden" name="active_offense_number" value="{ACTIVE_OFFENSE_NUMBER}" />
+	{S_FORM_TOKEN}
+	<fieldset class="submit-buttons">
+		<input type="submit" name="end_punishment" value="{L_AUTOPUNISH_END_PUNISHMENT}" class="button2" />
+		<!-- IF S_CAN_STEP_DOWN -->&nbsp;<label><input type="checkbox" name="step_down" value="1" /> {L_AUTOPUNISH_STEP_DOWN}</label><!-- ENDIF -->
+	</fieldset>
+</form>
+</div>
+</div>
+<!-- ENDIF -->
+
+<!-- Commutation -->
+<div class="panel">
+<div class="inner">
+<h2>{L_AUTOPUNISH_COMMUTE_OFFENSES}</h2>
+<p>{L_AUTOPUNISH_COMMUTE_EXPLAIN}</p>
+<form method="post" action="{U_ACTION}">
+	{S_FORM_TOKEN}
+	<dl>
+		<dt>{L_AUTOPUNISH_COMMUTED_OFFENSES}:</dt>
+		<dd> {COMMUTED_OFFENSES}</dd>
+	</dl>
+	<dl>
+		<dt><label for="reduce_offenses">{L_AUTOPUNISH_COMMUTE_SET}</label></dt>
+		<dd><input type="number" id="reduce_offenses" name="reduce_offenses" value="" min="0" max="{EFFECTIVE_OFFENSES}" size="5" placeholder="0" /></dd>
+	</dl>
+	<fieldset class="submit-buttons">
+		<input type="submit" name="save_commutation" value="{L_SUBMIT}" class="button1" />
+	</fieldset>
+</form>
+</div>
+</div>
+
+<!-- Punishment history -->
+<div class="panel">
+<div class="inner">
+<h2>{L_AUTOPUNISH_PUNISHMENT_HISTORY}</h2>
+<!-- IF not punishment_history.S_NUM_ROWS -->
+<p>{L_AUTOPUNISH_NO_HISTORY}</p>
+<!-- ELSE -->
+<table class="table1">
+	<thead>
+		<tr>
+			<th>#</th>
+			<th>{L_AUTOPUNISH_ACTION}</th>
+			<th>{L_AUTOPUNISH_GROUP}</th>
+			<th>{L_AUTOPUNISH_REASON_TEXT}</th>
+			<th>{L_AUTOPUNISH_STARTED}</th>
+			<th>{L_AUTOPUNISH_EXPIRES}</th>
+			<th>{L_AUTOPUNISH_STATUS}</th>
+		</tr>
+	</thead>
+	<tbody>
+	<!-- BEGIN punishment_history -->
+	<tr<!-- IF punishment_history.ACTIVE --> class="row2"<!-- ENDIF -->>
+		<td>{punishment_history.OFFENSE_NUMBER}</td>
+		<td>{punishment_history.ACTION}</td>
+		<td>{punishment_history.GROUP_ID}</td>
+		<td>{punishment_history.REASON}</td>
+		<td>{punishment_history.START_TIME}</td>
+		<td>{punishment_history.END_TIME}</td>
+		<td><!-- IF punishment_history.ACTIVE --><strong>{L_AUTOPUNISH_ACTIVE}</strong><!-- ELSE -->{L_AUTOPUNISH_EXPIRED_STATUS}<!-- ENDIF --></td>
+	</tr>
+	<!-- END punishment_history -->
+	</tbody>
+</table>
+<!-- ENDIF -->
+</div>
+</div>
+
+<!-- ENDIF -->

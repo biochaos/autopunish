@@ -1,0 +1,165 @@
+<!-- INCLUDE overall_header.html -->
+
+<h1>{L_ACP_AUTOPUNISH_TIERS}</h1>
+<p class="desc">{L_AUTOPUNISH_TIERS_EXPLAIN}</p>
+
+<form method="post" action="{U_ACTION}" id="tiers-form">
+
+<table class="table1" id="tiers-table">
+	<thead>
+		<tr>
+			<th>#</th>
+			<th>{L_AUTOPUNISH_WARNING_THRESHOLD}</th>
+			<th>{L_AUTOPUNISH_ACTION}</th>
+			<th>{L_AUTOPUNISH_GROUP}</th>
+			<th>{L_AUTOPUNISH_DURATION}</th>
+			<th>{L_AUTOPUNISH_REASON_TEXT}</th>
+			<th>{L_AUTOPUNISH_NOTIFICATION_TEXT}</th>
+			<th>{L_AUTOPUNISH_REMOVE}</th>
+		</tr>
+	</thead>
+	<tbody>
+	<!-- BEGIN tiers -->
+	<tr class="tier-row">
+		<td>{tiers.TIER_ORDER}</td>
+		<td><input type="number" name="tiers[{tiers.TIER_ORDER}][warning_threshold]" value="{tiers.WARNING_THRESHOLD}" min="1" size="3" /></td>
+		<td>
+			<select name="tiers[{tiers.TIER_ORDER}][action]" class="action-select" onchange="autopunishToggleGroup(this)">
+				<option value="group"<!-- IF tiers.ACTION == 'group' --> selected="selected"<!-- ENDIF -->>{L_AUTOPUNISH_ACTION_GROUP}</option>
+				<option value="deactivate"<!-- IF tiers.ACTION == 'deactivate' --> selected="selected"<!-- ENDIF -->>{L_AUTOPUNISH_ACTION_DEACTIVATE}</option>
+			</select>
+		</td>
+		<td class="group-cell"<!-- IF tiers.ACTION == 'deactivate' --> style="visibility:hidden"<!-- ENDIF -->>
+			<select name="tiers[{tiers.TIER_ORDER}][group_id]">
+				<option value="0"<!-- IF tiers.GROUP_ID == 0 --> selected="selected"<!-- ENDIF -->>—</option>
+				<!-- BEGIN groups -->
+				<option value="{tiers.groups.ID}"<!-- IF tiers.groups.SELECTED --> selected="selected"<!-- ENDIF -->>{tiers.groups.NAME}</option>
+				<!-- END groups -->
+			</select>
+		</td>
+		<td class="duration-cell"<!-- IF tiers.ACTION == 'deactivate' --> style="visibility:hidden"<!-- ENDIF -->>
+			<input type="number" name="tiers[{tiers.TIER_ORDER}][duration_value]" value="{tiers.DURATION_VALUE}" min="0" size="4" />
+			<select name="tiers[{tiers.TIER_ORDER}][duration_unit]">
+				<option value="days"<!-- IF tiers.DURATION_UNIT == 'days' --> selected="selected"<!-- ENDIF -->>{L_AUTOPUNISH_DAYS}</option>
+				<option value="weeks"<!-- IF tiers.DURATION_UNIT == 'weeks' --> selected="selected"<!-- ENDIF -->>{L_AUTOPUNISH_WEEKS}</option>
+				<option value="months"<!-- IF tiers.DURATION_UNIT == 'months' --> selected="selected"<!-- ENDIF -->>{L_AUTOPUNISH_MONTHS}</option>
+			</select>
+			<br /><small>{L_AUTOPUNISH_DURATION_ZERO}</small>
+		</td>
+		<td><input type="text" name="tiers[{tiers.TIER_ORDER}][reason_text]" value="{tiers.REASON_TEXT}" size="30" /></td>
+		<td><textarea name="tiers[{tiers.TIER_ORDER}][notification_text]" rows="2" cols="30">{tiers.NOTIFICATION_TEXT}</textarea></td>
+		<td><button type="button" class="button2" onclick="autopunishRemoveTier(this)">{L_AUTOPUNISH_REMOVE}</button></td>
+	</tr>
+	<!-- END tiers -->
+	</tbody>
+</table>
+
+<p>
+	<button type="button" class="button2" onclick="autopunishAddTier()">{L_AUTOPUNISH_ADD_TIER}</button>
+</p>
+
+<fieldset class="submit-buttons">
+	<input type="submit" name="submit" value="{L_SUBMIT}" class="button1" />
+	{S_FORM_TOKEN}
+</fieldset>
+
+</form>
+
+<!-- Language strings for JS (read via dataset to avoid Twig HTML-escaping inside JS literals) -->
+<div id="autopunish-lang" hidden
+	data-action-group="{L_AUTOPUNISH_ACTION_GROUP}"
+	data-action-deactivate="{L_AUTOPUNISH_ACTION_DEACTIVATE}"
+	data-days="{L_AUTOPUNISH_DAYS}"
+	data-weeks="{L_AUTOPUNISH_WEEKS}"
+	data-months="{L_AUTOPUNISH_MONTHS}"
+	data-remove="{L_AUTOPUNISH_REMOVE}"
+	data-remove-confirm="{L_AUTOPUNISH_REMOVE_CONFIRM}"
+	data-duration-zero="{L_AUTOPUNISH_DURATION_ZERO}"></div>
+
+<!-- Groups data for JS new-row template (data-* to avoid JS-escaping issues) -->
+<ul id="autopunish-groups" hidden>
+	<!-- BEGIN groups -->
+	<li data-id="{groups.ID}" data-name="{groups.NAME}"></li>
+	<!-- END groups -->
+</ul>
+
+<script type="text/javascript">
+//<![CDATA[
+var autopunishGroups = Array.from(document.querySelectorAll('#autopunish-groups li')).map(function(el) {
+	return { id: parseInt(el.dataset.id, 10), name: el.dataset.name };
+});
+
+var autopunishTierCount = {TIERS_COUNT};
+
+var autopunishLang = (function() {
+	var d = document.getElementById('autopunish-lang').dataset;
+	return {
+		actionGroup:      d.actionGroup,
+		actionDeactivate: d.actionDeactivate,
+		days:             d.days,
+		weeks:            d.weeks,
+		months:           d.months,
+		remove:           d.remove,
+		removeConfirm:    d.removeConfirm,
+		durationZero:     d.durationZero,
+	};
+})();
+
+function autopunishToggleGroup(select) {
+	var row = select.closest('tr');
+	var isDeactivate = select.value === 'deactivate';
+	row.querySelector('.group-cell').style.visibility    = isDeactivate ? 'hidden' : '';
+	row.querySelector('.duration-cell').style.visibility = isDeactivate ? 'hidden' : '';
+}
+
+function autopunishRemoveTier(btn) {
+	if (confirm(autopunishLang.removeConfirm)) {
+		btn.closest('tr').remove();
+		autopunishRenumber();
+	}
+}
+
+function autopunishRenumber() {
+	var rows = document.querySelectorAll('#tiers-table tbody tr');
+	rows.forEach(function(row, i) {
+		row.querySelectorAll('input, select, textarea').forEach(function(el) {
+			if (el.name) el.name = el.name.replace(/tiers\[\d+\]/, 'tiers[' + i + ']');
+		});
+		row.cells[0].textContent = i + 1;
+	});
+}
+
+function autopunishAddTier() {
+	autopunishTierCount++;
+	var i = autopunishTierCount - 1;
+	var groupOptions = '<option value="0" selected>—</option>'
+		+ autopunishGroups.map(function(g) {
+			return '<option value="' + g.id + '">' + g.name + '</option>';
+		}).join('');
+
+	var html = '<tr class="tier-row">'
+		+ '<td>' + (i + 1) + '</td>'
+		+ '<td><input type="number" name="tiers[' + i + '][warning_threshold]" value="3" min="1" size="3" /></td>'
+		+ '<td><select name="tiers[' + i + '][action]" class="action-select" onchange="autopunishToggleGroup(this)">'
+		+   '<option value="group">' + autopunishLang.actionGroup + '</option>'
+		+   '<option value="deactivate">' + autopunishLang.actionDeactivate + '</option>'
+		+ '</select></td>'
+		+ '<td class="group-cell"><select name="tiers[' + i + '][group_id]">' + groupOptions + '</select></td>'
+		+ '<td class="duration-cell"><input type="number" name="tiers[' + i + '][duration_value]" value="7" min="0" size="4" />'
+		+   '<select name="tiers[' + i + '][duration_unit]">'
+		+     '<option value="days">' + autopunishLang.days + '</option>'
+		+     '<option value="weeks">' + autopunishLang.weeks + '</option>'
+		+     '<option value="months">' + autopunishLang.months + '</option>'
+		+   '</select>'
+		+   '<br /><small>' + autopunishLang.durationZero + '</small></td>'
+		+ '<td><input type="text" name="tiers[' + i + '][reason_text]" value="" size="30" /></td>'
+		+ '<td><textarea name="tiers[' + i + '][notification_text]" rows="2" cols="30"></textarea></td>'
+		+ '<td><button type="button" class="button2" onclick="autopunishRemoveTier(this)">' + autopunishLang.remove + '</button></td>'
+		+ '</tr>';
+
+	document.querySelector('#tiers-table tbody').insertAdjacentHTML('beforeend', html);
+}
+//]]>
+</script>
+
+<!-- INCLUDE overall_footer.html -->
