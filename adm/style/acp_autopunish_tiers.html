@@ -22,15 +22,15 @@
 	<!-- BEGIN tiers -->
 	<tr class="tier-row">
 		<td>{tiers.TIER_ORDER}</td>
-		<td><input type="number" name="tiers[{tiers.TIER_ORDER}][warning_threshold]" value="{tiers.WARNING_THRESHOLD}" min="1" size="3" /></td>
+		<td><input type="number" name="tiers[{tiers.TIER_INDEX}][warning_threshold]" value="{tiers.WARNING_THRESHOLD}" min="1" size="3" /></td>
 		<td>
-			<select name="tiers[{tiers.TIER_ORDER}][action]" class="action-select" onchange="autopunishToggleGroup(this)">
+			<select name="tiers[{tiers.TIER_INDEX}][action]" class="action-select" onchange="autopunishToggleGroup(this)">
 				<option value="group"<!-- IF tiers.ACTION == 'group' --> selected="selected"<!-- ENDIF -->>{L_AUTOPUNISH_ACTION_GROUP}</option>
 				<option value="deactivate"<!-- IF tiers.ACTION == 'deactivate' --> selected="selected"<!-- ENDIF -->>{L_AUTOPUNISH_ACTION_DEACTIVATE}</option>
 			</select>
 		</td>
 		<td class="group-cell"<!-- IF tiers.ACTION == 'deactivate' --> style="visibility:hidden"<!-- ENDIF -->>
-			<select name="tiers[{tiers.TIER_ORDER}][group_id]">
+			<select name="tiers[{tiers.TIER_INDEX}][group_id]">
 				<option value="0"<!-- IF tiers.GROUP_ID == 0 --> selected="selected"<!-- ENDIF -->>—</option>
 				<!-- BEGIN groups -->
 				<option value="{tiers.groups.ID}"<!-- IF tiers.groups.SELECTED --> selected="selected"<!-- ENDIF -->>{tiers.groups.NAME}</option>
@@ -38,16 +38,16 @@
 			</select>
 		</td>
 		<td class="duration-cell"<!-- IF tiers.ACTION == 'deactivate' --> style="visibility:hidden"<!-- ENDIF -->>
-			<input type="number" name="tiers[{tiers.TIER_ORDER}][duration_value]" value="{tiers.DURATION_VALUE}" min="0" size="4" />
-			<select name="tiers[{tiers.TIER_ORDER}][duration_unit]">
+			<input type="number" name="tiers[{tiers.TIER_INDEX}][duration_value]" value="{tiers.DURATION_VALUE}" min="0" size="4" />
+			<select name="tiers[{tiers.TIER_INDEX}][duration_unit]">
 				<option value="days"<!-- IF tiers.DURATION_UNIT == 'days' --> selected="selected"<!-- ENDIF -->>{L_AUTOPUNISH_DAYS}</option>
 				<option value="weeks"<!-- IF tiers.DURATION_UNIT == 'weeks' --> selected="selected"<!-- ENDIF -->>{L_AUTOPUNISH_WEEKS}</option>
 				<option value="months"<!-- IF tiers.DURATION_UNIT == 'months' --> selected="selected"<!-- ENDIF -->>{L_AUTOPUNISH_MONTHS}</option>
 			</select>
 			<br /><small>{L_AUTOPUNISH_DURATION_ZERO}</small>
 		</td>
-		<td><input type="text" name="tiers[{tiers.TIER_ORDER}][reason_text]" value="{tiers.REASON_TEXT}" size="30" /></td>
-		<td><textarea name="tiers[{tiers.TIER_ORDER}][notification_text]" rows="2" cols="30">{tiers.NOTIFICATION_TEXT}</textarea></td>
+		<td><input type="text" name="tiers[{tiers.TIER_INDEX}][reason_text]" value="{tiers.REASON_TEXT}" size="30" /></td>
+		<td><textarea name="tiers[{tiers.TIER_INDEX}][notification_text]" rows="2" cols="30">{tiers.NOTIFICATION_TEXT}</textarea></td>
 		<td><button type="button" class="button2" onclick="autopunishRemoveTier(this)">{L_AUTOPUNISH_REMOVE}</button></td>
 	</tr>
 	<!-- END tiers -->
@@ -89,8 +89,6 @@ var autopunishGroups = Array.from(document.querySelectorAll('#autopunish-groups 
 	return { id: parseInt(el.dataset.id, 10), name: el.dataset.name };
 });
 
-var autopunishTierCount = {TIERS_COUNT};
-
 var autopunishLang = (function() {
 	var d = document.getElementById('autopunish-lang').dataset;
 	return {
@@ -130,8 +128,7 @@ function autopunishRenumber() {
 }
 
 function autopunishAddTier() {
-	autopunishTierCount++;
-	var i = autopunishTierCount - 1;
+	var i = document.querySelectorAll('#tiers-table tbody tr').length;
 	var groupOptions = '<option value="0" selected>—</option>'
 		+ autopunishGroups.map(function(g) {
 			return '<option value="' + g.id + '">' + g.name + '</option>';
@@ -158,6 +155,10 @@ function autopunishAddTier() {
 		+ '</tr>';
 
 	document.querySelector('#tiers-table tbody').insertAdjacentHTML('beforeend', html);
+
+	// Reindex from scratch so the form keys stay contiguous and unique no matter
+	// what has been added or removed since the page was rendered.
+	autopunishRenumber();
 }
 //]]>
 </script>

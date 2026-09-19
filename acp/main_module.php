@@ -210,7 +210,12 @@ class main_module
 
 			$tier_tpl = [
 				'TIER_ID'           => $tier['tier_id'],
+				// TIER_ORDER is the number shown to the admin; TIER_INDEX is the
+				// form array key. They must not be the same value — the JS that
+				// appends a row indexes from zero, so a one-based key would make
+				// the new row collide with the last existing one and overwrite it.
 				'TIER_ORDER'        => $i + 1,
+				'TIER_INDEX'        => $i,
 				'WARNING_THRESHOLD' => $tier['warning_threshold'],
 				'ACTION'            => $tier['action'],
 				'GROUP_ID'          => $tier['group_id'],
@@ -242,7 +247,6 @@ class main_module
 
 		$template->assign_vars([
 			'U_ACTION'    => $this->u_action,
-			'TIERS_COUNT' => count($tiers),
 		]);
 	}
 

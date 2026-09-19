@@ -80,6 +80,14 @@ AutoPunish adds an **AutoPunish** tab to the ACP **Manage Users** page (**Users 
 
 ## Changelog
 
+### 1.0.2 — 2026-09-19
+
+**Fixed**
+
+- **Adding a punishment tier overwrote the last existing tier instead of appending a new one.** The tier rows rendered by the server were keyed from one (`tiers[1]` … `tiers[4]`) while the "Add tier" button keyed the row it appended from zero, so on a board with four tiers the new row was named `tiers[4]` — the same key as the existing fourth row. The browser submitted both under that key, the later one won, and the fourth tier was replaced by the blank new one. The table showed five rows; only four were saved.
+
+  The row number shown in the first column and the form array key are now separate values, so the appended row can never collide, and the rows are re-keyed after every add and remove.
+
 ### 1.0.1 — 2026-09-19
 
 **Fixed**

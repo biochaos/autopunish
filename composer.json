@@ -2,7 +2,7 @@
 	"name": "biochaos/autopunish",
 	"type": "phpbb-extension",
 	"description": "Automatically punishes users when they accumulate warnings, with configurable tiers and durations.",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"license": "GPL-2.0-only",
 	"authors": [
 		{
