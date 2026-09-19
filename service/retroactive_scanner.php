@@ -107,8 +107,12 @@ class retroactive_scanner
 				continue;
 			}
 
-			$this->punishment_manager->handle_warning($user);
-			$punished++;
+			// handle_warning() has the final say — it also rejects users whose
+			// warnings have already been punished for — so only count what it did.
+			if ($this->punishment_manager->handle_warning($user))
+			{
+				$punished++;
+			}
 		}
 
 		$this->log->add('admin', ANONYMOUS, '', 'LOG_AUTOPUNISH_RETROACTIVE', false, [$punished]);

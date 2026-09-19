@@ -52,7 +52,7 @@ Each row defines one punishment tier. The row position is the offense number (1s
 |---|---|
 | Warning threshold (≥) | Minimum active warning count that triggers this tier. |
 | Action | Add to group or deactivate the account. |
-| Group | The group to add the user to (only for the "add to group" action). |
+| Group | The group to add the user to (only for the "add to group" action). Use a group that AutoPunish alone manages — if another extension also controls its membership, it can re-add users after AutoPunish removes them on expiry. |
 | Duration | Length of the punishment in days, weeks, or months. Set to 0 for permanent. |
 | Reason | Internal note visible to administrators in the log. |
 | Notification text | Body text sent to the user via PM/email for this tier. Supports `{USERNAME}`, `{DURATION}`, `{REASON}`, `{OFFENSE_NUMBER}`. |
@@ -77,6 +77,28 @@ AutoPunish adds an **AutoPunish** tab to the ACP **Manage Users** page (**Users 
 **Commute offenses** — reduces the user's effective offense counter by a chosen amount. The next punishment will use a correspondingly lower tier. Does not affect any currently active punishment.
 
 **Punishment history** — a full log of every punishment the user has received, including offense number, action, group, reason, start date, expiry date, and status (active / expired).
+
+## Changelog
+
+### 1.0.1 — 2026-09-19
+
+**Fixed**
+
+- **The retroactive scan no longer re-punishes users for warnings they have already served.** phpBB leaves a user's warning count on their account after a punishment ends, so a user punished at three warnings still had three warnings once it expired. Any later run of the retroactive scan saw them as eligible and punished them again — one tier higher each time, since the offense counter had gone up. Repeated over enough scans this escalated an unchanged account all the way to deactivation.
+
+  Punishments now record the warning that triggered them, and a new punishment requires at least one warning newer than the last one already punished for. Warning ids are never reused, so this stays correct even after phpBB's warning pruning removes the underlying rows.
+
+- The retroactive scan's log entry counted every user it examined rather than every user it punished, overstating "%d users punished".
+
+**Upgrading**
+
+Punishments recorded before this release are backfilled automatically when the extension's migrations run: each is stamped with the newest warning that was already on the account when it was applied. No action is needed beyond the usual enable/update step, and no user is punished as a side effect of upgrading.
+
+Nothing changes for punishments triggered by a moderator issuing a warning — that path was never affected.
+
+### 1.0.0 — 2026-04-19
+
+- Initial release.
 
 ## Uninstallation
 

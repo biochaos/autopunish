@@ -77,12 +77,14 @@ class punishment_manager
 	/**
 	 * Main entry point called from the warning event.
 	 * Handles the full trigger flow per the spec.
+	 *
+	 * @return bool True when a punishment was applied, restarted or escalated.
 	 */
 	public function handle_warning(array $user_data)
 	{
 		if (!$this->config['autopunish_enabled'])
 		{
-			return;
+			return false;
 		}
 
 		$user_id = (int) $user_data['user_id'];
@@ -96,36 +98,46 @@ class punishment_manager
 
 		if ($this->is_user_exempt($user_id))
 		{
-			return;
+			return false;
+		}
+
+		// A warning count on its own never says whether those warnings have already
+		// been answered for. Once a punishment expires the count stays put, so
+		// without this the retroactive scan would punish the same user again — and
+		// again at a higher tier — every time it is run.
+		if (!$this->has_unpunished_warning($user_id))
+		{
+			return false;
 		}
 
 		$active = $this->get_active_punishment($user_id);
 
 		if ($active)
 		{
-			$this->handle_warning_during_punishment($user_id, $user_data['username'], $user_warnings, $active);
+			return $this->handle_warning_during_punishment($user_id, $user_data['username'], $user_warnings, $active);
 		}
-		else
+
+		$offense_number = $this->get_next_offense_number($user_id);
+		$tier           = $this->tier_manager->get_tier_for_offense($offense_number);
+
+		if (!$tier)
 		{
-			$offense_number = $this->get_next_offense_number($user_id);
-			$tier           = $this->tier_manager->get_tier_for_offense($offense_number);
-
-			if (!$tier)
-			{
-				return;
-			}
-
-			if ($this->config['autopunish_dry_run'])
-			{
-				$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_DRY_RUN', false, [$user_data['username'], $offense_number, $tier['action']]);
-				return;
-			}
-
-			if ($user_warnings >= $tier['warning_threshold'])
-			{
-				$this->apply_punishment($user_id, $user_data['username'], $offense_number, $tier);
-			}
+			return false;
 		}
+
+		if ($this->config['autopunish_dry_run'])
+		{
+			$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_DRY_RUN', false, [$user_data['username'], $offense_number, $tier['action']]);
+			return false;
+		}
+
+		if ($user_warnings >= $tier['warning_threshold'])
+		{
+			$this->apply_punishment($user_id, $user_data['username'], $offense_number, $tier);
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -319,10 +331,52 @@ class punishment_manager
 		return ($val === false) ? 0 : (int) $val;
 	}
 
+	/**
+	 * Highest warning id currently on a user's account, or 0 when they have none.
+	 */
+	public function get_latest_warning_id($user_id)
+	{
+		$sql    = 'SELECT MAX(warning_id) AS latest_warning_id FROM ' . WARNINGS_TABLE . ' WHERE user_id = ' . (int) $user_id;
+		$result = $this->db->sql_query($sql);
+		$latest = $this->db->sql_fetchfield('latest_warning_id');
+		$this->db->sql_freeresult($result);
+		return (int) $latest;
+	}
+
+	/**
+	 * Highest warning id any of the user's previous punishments was issued for, or 0.
+	 */
+	public function get_last_punished_warning_id($user_id)
+	{
+		$sql    = 'SELECT MAX(trigger_warning_id) AS last_punished FROM ' . $this->punishments_table . ' WHERE user_id = ' . (int) $user_id;
+		$result = $this->db->sql_query($sql);
+		$last   = $this->db->sql_fetchfield('last_punished');
+		$this->db->sql_freeresult($result);
+		return (int) $last;
+	}
+
+	/**
+	 * True when the user has picked up at least one warning since their most recent
+	 * punishment was issued.
+	 *
+	 * Warning ids are assigned by auto-increment and are never reused, so comparing
+	 * the two high-water marks stays correct even after phpBB's warning pruning has
+	 * deleted the underlying rows: pruning can only lower the account's highest id,
+	 * which errs towards not punishing. A user with no warnings left reports 0 and
+	 * is never punished.
+	 */
+	public function has_unpunished_warning($user_id)
+	{
+		return $this->get_latest_warning_id($user_id) > $this->get_last_punished_warning_id($user_id);
+	}
+
 	// -------------------------------------------------------------------------
 	// Internal helpers
 	// -------------------------------------------------------------------------
 
+	/**
+	 * @return bool True when the active punishment was restarted or replaced.
+	 */
 	private function handle_warning_during_punishment($user_id, $username, $user_warnings, array $active)
 	{
 		$mode = $this->config['autopunish_warn_during_punishment'];
@@ -335,9 +389,11 @@ class punishment_manager
 					$duration = $active['end_time'] - $active['start_time'];
 					$now      = time();
 					$this->db->sql_query('UPDATE ' . $this->punishments_table . '
-						SET start_time = ' . $now . ', end_time = ' . ($now + $duration) . '
+						SET start_time = ' . $now . ', end_time = ' . ($now + $duration) . ',
+							trigger_warning_id = ' . $this->get_latest_warning_id($user_id) . '
 						WHERE punishment_id = ' . (int) $active['punishment_id']);
 					$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_RESTARTED', false, [$username, $active['offense_number']]);
+					return true;
 				}
 			break;
 
@@ -348,6 +404,7 @@ class punishment_manager
 				{
 					$this->end_active_punishment($active);
 					$this->apply_punishment($user_id, $username, $offense_number, $tier);
+					return true;
 				}
 			break;
 
@@ -362,8 +419,11 @@ class punishment_manager
 				$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_ESCALATED', false,
 					[$username, $active['offense_number'], $offense_number]);
 				$this->apply_punishment($user_id, $username, $offense_number, $tier);
+				return true;
 			break;
 		}
+
+		return false;
 	}
 
 	private function apply_punishment($user_id, $username, $offense_number, array $tier)
@@ -372,14 +432,15 @@ class punishment_manager
 		$end_time = ($tier['duration_seconds'] > 0) ? ($now + (int) $tier['duration_seconds']) : 0;
 
 		$sql_ary = [
-			'user_id'        => (int) $user_id,
-			'offense_number' => (int) $offense_number,
-			'action'         => $tier['action'],
-			'group_id'       => (int) $tier['group_id'],
-			'reason_text'    => $tier['reason_text'],
-			'start_time'     => $now,
-			'end_time'       => $end_time,
-			'active'         => 1,
+			'user_id'            => (int) $user_id,
+			'offense_number'     => (int) $offense_number,
+			'action'             => $tier['action'],
+			'group_id'           => (int) $tier['group_id'],
+			'reason_text'        => $tier['reason_text'],
+			'start_time'         => $now,
+			'end_time'           => $end_time,
+			'active'             => 1,
+			'trigger_warning_id' => $this->get_latest_warning_id($user_id),
 		];
 
 		$this->db->sql_query('INSERT INTO ' . $this->punishments_table . ' ' . $this->db->sql_build_array('INSERT', $sql_ary));
