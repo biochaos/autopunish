@@ -8,7 +8,7 @@
 
 namespace biochaos\autopunish\migrations;
 
-class install_default_tiers extends \phpbb\db\migration\migration
+class install_default_tiers extends \phpbb\db\migration\container_aware_migration
 {
 	public function effectively_installed()
 	{
@@ -29,6 +29,13 @@ class install_default_tiers extends \phpbb\db\migration\migration
 
 	public function insert_default_tiers()
 	{
+		// The reason and notification texts are user-editable in the ACP once
+		// installed, but they should arrive in the administrator's language.
+		// phpBB's language loader falls back to the board default and then to
+		// English when a translation is missing.
+		$language = $this->container->get('language');
+		$language->add_lang('default_tiers', 'biochaos/autopunish');
+
 		$tiers = [
 			[
 				'tier_order'        => 1,
@@ -36,8 +43,8 @@ class install_default_tiers extends \phpbb\db\migration\migration
 				'action'            => 'group',
 				'group_id'          => 0,
 				'duration_seconds'  => 7 * 86400,   // 7 days
-				'reason_text'       => '1st offense — 7 day restriction',
-				'notification_text' => 'You have received your first punishment ({DURATION}). Reason: {REASON}.',
+				'reason_text'       => $language->lang('AUTOPUNISH_DEFAULT_TIER_1_REASON'),
+				'notification_text' => $language->lang('AUTOPUNISH_DEFAULT_TIER_1_NOTIFY'),
 			],
 			[
 				'tier_order'        => 2,
@@ -45,8 +52,8 @@ class install_default_tiers extends \phpbb\db\migration\migration
 				'action'            => 'group',
 				'group_id'          => 0,
 				'duration_seconds'  => 30 * 86400,  // 30 days
-				'reason_text'       => '2nd offense — 30 day restriction',
-				'notification_text' => 'You have received your second punishment ({DURATION}). Reason: {REASON}.',
+				'reason_text'       => $language->lang('AUTOPUNISH_DEFAULT_TIER_2_REASON'),
+				'notification_text' => $language->lang('AUTOPUNISH_DEFAULT_TIER_2_NOTIFY'),
 			],
 			[
 				'tier_order'        => 3,
@@ -54,24 +61,21 @@ class install_default_tiers extends \phpbb\db\migration\migration
 				'action'            => 'group',
 				'group_id'          => 0,
 				'duration_seconds'  => 180 * 86400, // 180 days
-				'reason_text'       => '3rd offense — 180 day restriction',
-				'notification_text' => 'You have received your third punishment ({DURATION}). Reason: {REASON}.',
+				'reason_text'       => $language->lang('AUTOPUNISH_DEFAULT_TIER_3_REASON'),
+				'notification_text' => $language->lang('AUTOPUNISH_DEFAULT_TIER_3_NOTIFY'),
 			],
 			[
 				'tier_order'        => 4,
 				'warning_threshold' => 1,
 				'action'            => 'deactivate',
 				'group_id'          => 0,
-				'duration_seconds'  => 0,            // permanent
-				'reason_text'       => '4th offense — account deactivation',
-				'notification_text' => 'Your account has been deactivated due to repeated violations.',
+				'duration_seconds'  => 0,           // permanent
+				'reason_text'       => $language->lang('AUTOPUNISH_DEFAULT_TIER_4_REASON'),
+				'notification_text' => $language->lang('AUTOPUNISH_DEFAULT_TIER_4_NOTIFY'),
 			],
 		];
 
-		foreach ($tiers as $tier)
-		{
-			$this->db->sql_query('INSERT INTO ' . $this->table_prefix . 'autopunish_tiers ' . $this->db->sql_build_array('INSERT', $tier));
-		}
+		$this->db->sql_multi_insert($this->table_prefix . 'autopunish_tiers', $tiers);
 
 		$this->config->set('autopunish_default_tiers_installed', 1);
 	}
