@@ -33,7 +33,7 @@
 			<select name="tiers[{tiers.TIER_INDEX}][group_id]">
 				<option value="0"<!-- IF tiers.GROUP_ID == 0 --> selected="selected"<!-- ENDIF -->>—</option>
 				<!-- BEGIN groups -->
-				<option value="{tiers.groups.ID}"<!-- IF tiers.groups.SELECTED --> selected="selected"<!-- ENDIF -->>{tiers.groups.NAME}</option>
+				<option value="{tiers.groups.ID}"<!-- IF tiers.groups.SELECTED --> selected="selected"<!-- ENDIF -->>{tiers.groups.NAME|escape('html')}</option>
 				<!-- END groups -->
 			</select>
 		</td>
@@ -46,8 +46,8 @@
 			</select>
 			<br /><small>{L_AUTOPUNISH_DURATION_ZERO}</small>
 		</td>
-		<td><input type="text" name="tiers[{tiers.TIER_INDEX}][reason_text]" value="{tiers.REASON_TEXT}" size="30" /></td>
-		<td><textarea name="tiers[{tiers.TIER_INDEX}][notification_text]" rows="2" cols="30">{tiers.NOTIFICATION_TEXT}</textarea></td>
+		<td><input type="text" name="tiers[{tiers.TIER_INDEX}][reason_text]" value="{tiers.REASON_TEXT|escape('html_attr')}" size="30" /></td>
+		<td><textarea name="tiers[{tiers.TIER_INDEX}][notification_text]" rows="2" cols="30">{tiers.NOTIFICATION_TEXT|escape('html')}</textarea></td>
 		<td><button type="button" class="button2" onclick="autopunishRemoveTier(this)">{L_AUTOPUNISH_REMOVE}</button></td>
 	</tr>
 	<!-- END tiers -->
@@ -65,21 +65,22 @@
 
 </form>
 
-<!-- Language strings for JS (read via dataset to avoid Twig HTML-escaping inside JS literals) -->
+<!-- Language strings for JS, read via dataset so no translation ever has to
+     survive being quoted inside a JS literal. -->
 <div id="autopunish-lang" hidden
-	data-action-group="{L_AUTOPUNISH_ACTION_GROUP}"
-	data-action-deactivate="{L_AUTOPUNISH_ACTION_DEACTIVATE}"
-	data-days="{L_AUTOPUNISH_DAYS}"
-	data-weeks="{L_AUTOPUNISH_WEEKS}"
-	data-months="{L_AUTOPUNISH_MONTHS}"
-	data-remove="{L_AUTOPUNISH_REMOVE}"
-	data-remove-confirm="{L_AUTOPUNISH_REMOVE_CONFIRM}"
-	data-duration-zero="{L_AUTOPUNISH_DURATION_ZERO}"></div>
+	data-action-group="{L_AUTOPUNISH_ACTION_GROUP|escape('html_attr')}"
+	data-action-deactivate="{L_AUTOPUNISH_ACTION_DEACTIVATE|escape('html_attr')}"
+	data-days="{L_AUTOPUNISH_DAYS|escape('html_attr')}"
+	data-weeks="{L_AUTOPUNISH_WEEKS|escape('html_attr')}"
+	data-months="{L_AUTOPUNISH_MONTHS|escape('html_attr')}"
+	data-remove="{L_AUTOPUNISH_REMOVE|escape('html_attr')}"
+	data-remove-confirm="{L_AUTOPUNISH_REMOVE_CONFIRM|escape('html_attr')}"
+	data-duration-zero="{L_AUTOPUNISH_DURATION_ZERO|escape('html_attr')}"></div>
 
-<!-- Groups data for JS new-row template (data-* to avoid JS-escaping issues) -->
+<!-- Groups data for the JS new-row template, same reasoning. -->
 <ul id="autopunish-groups" hidden>
 	<!-- BEGIN groups -->
-	<li data-id="{groups.ID}" data-name="{groups.NAME}"></li>
+	<li data-id="{groups.ID}" data-name="{groups.NAME|escape('html_attr')}"></li>
 	<!-- END groups -->
 </ul>
 
@@ -127,34 +128,86 @@ function autopunishRenumber() {
 	});
 }
 
+// Rows are assembled with DOM calls, never by concatenating HTML. Group names
+// are free-form data, so a name is only ever handed to textContent or
+// setAttribute -- it can never be parsed as markup.
+function autopunishEl(tag, attrs, text) {
+	var el = document.createElement(tag);
+
+	for (var name in attrs) {
+		if (Object.prototype.hasOwnProperty.call(attrs, name)) {
+			el.setAttribute(name, attrs[name]);
+		}
+	}
+
+	if (text !== undefined) {
+		el.textContent = text;
+	}
+
+	return el;
+}
+
+function autopunishOption(value, text) {
+	return autopunishEl('option', { value: value }, text);
+}
+
+function autopunishCell(child, className) {
+	var td = autopunishEl('td', className ? { 'class': className } : {});
+	td.appendChild(child);
+	return td;
+}
+
 function autopunishAddTier() {
-	var i = document.querySelectorAll('#tiers-table tbody tr').length;
-	var groupOptions = '<option value="0" selected>—</option>'
-		+ autopunishGroups.map(function(g) {
-			return '<option value="' + g.id + '">' + g.name + '</option>';
-		}).join('');
+	var i   = document.querySelectorAll('#tiers-table tbody tr').length;
+	var key = 'tiers[' + i + ']';
+	var row = autopunishEl('tr', { 'class': 'tier-row' });
 
-	var html = '<tr class="tier-row">'
-		+ '<td>' + (i + 1) + '</td>'
-		+ '<td><input type="number" name="tiers[' + i + '][warning_threshold]" value="3" min="1" size="3" /></td>'
-		+ '<td><select name="tiers[' + i + '][action]" class="action-select" onchange="autopunishToggleGroup(this)">'
-		+   '<option value="group">' + autopunishLang.actionGroup + '</option>'
-		+   '<option value="deactivate">' + autopunishLang.actionDeactivate + '</option>'
-		+ '</select></td>'
-		+ '<td class="group-cell"><select name="tiers[' + i + '][group_id]">' + groupOptions + '</select></td>'
-		+ '<td class="duration-cell"><input type="number" name="tiers[' + i + '][duration_value]" value="7" min="0" size="4" />'
-		+   '<select name="tiers[' + i + '][duration_unit]">'
-		+     '<option value="days">' + autopunishLang.days + '</option>'
-		+     '<option value="weeks">' + autopunishLang.weeks + '</option>'
-		+     '<option value="months">' + autopunishLang.months + '</option>'
-		+   '</select>'
-		+   '<br /><small>' + autopunishLang.durationZero + '</small></td>'
-		+ '<td><input type="text" name="tiers[' + i + '][reason_text]" value="" size="30" /></td>'
-		+ '<td><textarea name="tiers[' + i + '][notification_text]" rows="2" cols="30"></textarea></td>'
-		+ '<td><button type="button" class="button2" onclick="autopunishRemoveTier(this)">' + autopunishLang.remove + '</button></td>'
-		+ '</tr>';
+	row.appendChild(autopunishEl('td', {}, i + 1));
 
-	document.querySelector('#tiers-table tbody').insertAdjacentHTML('beforeend', html);
+	row.appendChild(autopunishCell(autopunishEl('input', {
+		type: 'number', name: key + '[warning_threshold]', value: '3', min: '1', size: '3'
+	})));
+
+	var action = autopunishEl('select', { name: key + '[action]', 'class': 'action-select' });
+	action.appendChild(autopunishOption('group', autopunishLang.actionGroup));
+	action.appendChild(autopunishOption('deactivate', autopunishLang.actionDeactivate));
+	action.addEventListener('change', function () { autopunishToggleGroup(this); });
+	row.appendChild(autopunishCell(action));
+
+	var group   = autopunishEl('select', { name: key + '[group_id]' });
+	var noGroup = autopunishOption('0', '—');
+	noGroup.selected = true;
+	group.appendChild(noGroup);
+	autopunishGroups.forEach(function (g) {
+		group.appendChild(autopunishOption(g.id, g.name));
+	});
+	row.appendChild(autopunishCell(group, 'group-cell'));
+
+	var durationCell = autopunishCell(autopunishEl('input', {
+		type: 'number', name: key + '[duration_value]', value: '7', min: '0', size: '4'
+	}), 'duration-cell');
+	var unit = autopunishEl('select', { name: key + '[duration_unit]' });
+	unit.appendChild(autopunishOption('days',   autopunishLang.days));
+	unit.appendChild(autopunishOption('weeks',  autopunishLang.weeks));
+	unit.appendChild(autopunishOption('months', autopunishLang.months));
+	durationCell.appendChild(unit);
+	durationCell.appendChild(autopunishEl('br'));
+	durationCell.appendChild(autopunishEl('small', {}, autopunishLang.durationZero));
+	row.appendChild(durationCell);
+
+	row.appendChild(autopunishCell(autopunishEl('input', {
+		type: 'text', name: key + '[reason_text]', value: '', size: '30'
+	})));
+
+	row.appendChild(autopunishCell(autopunishEl('textarea', {
+		name: key + '[notification_text]', rows: '2', cols: '30'
+	})));
+
+	var remove = autopunishEl('button', { type: 'button', 'class': 'button2' }, autopunishLang.remove);
+	remove.addEventListener('click', function () { autopunishRemoveTier(this); });
+	row.appendChild(autopunishCell(remove));
+
+	document.querySelector('#tiers-table tbody').appendChild(row);
 
 	// Reindex from scratch so the form keys stay contiguous and unique no matter
 	// what has been added or removed since the page was rendered.

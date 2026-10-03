@@ -33,7 +33,7 @@
 		<dd>
 			<select id="autopunish_exempt_groups" name="autopunish_exempt_groups[]" multiple="multiple" size="6">
 				<!-- BEGIN groups -->
-				<option value="{groups.ID}"<!-- IF groups.SELECTED --> selected="selected"<!-- ENDIF -->>{groups.NAME}</option>
+				<option value="{groups.ID}"<!-- IF groups.SELECTED --> selected="selected"<!-- ENDIF -->>{groups.NAME|escape('html')}</option>
 				<!-- END groups -->
 			</select>
 		</dd>
