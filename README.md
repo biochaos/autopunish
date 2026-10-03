@@ -80,6 +80,32 @@ AutoPunish adds an **AutoPunish** tab to the ACP **Manage Users** page (**Users 
 
 ## Changelog
 
+### 1.0.3 — 2026-10-03
+
+Addresses the notes from the phpBB Extension Customisations Team's validation of 1.0.0.
+
+**Fixed**
+
+- **Email notifications were never sent, and the request that asked for one died.** phpBB's messenger looks for an extension's email template under `language/<lang>/email/`, appending `.txt` to the name itself. The template shipped at `styles/all/template/notification_email.html`, so the lookup never found it and threw. With *Enable email notifications* switched on, the punishment row was written and the request then aborted: a moderator issuing a warning got a general error page after the punishment had already been applied, and a run of the expiry cron stopped at the first punishment it had to notify about. The template now lives at `language/<lang>/email/notification_email.txt` in all five bundled languages.
+
+- **The Punishment History table never appeared.** `{punishment_history.S_NUM_ROWS}` referenced outside its own loop resolves to nothing in phpBB 3.3, so the "No punishment history." branch always won — users with confirmed punishment rows showed as having none. The condition is now phpBB's empty-block test, `<!-- IF not .punishment_history -->`.
+
+- **"End punishment early" skipped its confirmation on some translations.** The confirmation text was interpolated raw into a JavaScript string literal, so a translation containing an apostrophe — the bundled French `L'infraction`, for one — terminated the string early and let the click through without asking. The punishment itself always ended correctly; what was lost was the accidental-click guard.
+
+- **Group names and tier text are now escaped for the context they are rendered into.** A group name containing a double quote broke out of the `data-name` attribute on the Punishment Tiers page and was then concatenated into HTML by the *Add tier* JavaScript; a tier reason containing a quote broke the reason field's `value` attribute. Rows added by *Add tier* are now assembled with DOM calls instead of HTML strings.
+
+**Changed**
+
+- The default punishment tiers now install in the administrator's language, falling back to the board default and then to English. They remain editable in the ACP afterwards, exactly as before.
+- Tier rows are written in a single batched statement in both the installer migration and the ACP save.
+- The "(autocomplete)" hint beside the notification sender field is now a translatable language key.
+- Removed two language keys that nothing referenced, `ACP_AUTOPUNISH_USER` and `AUTOPUNISH_SELECT_USER`.
+- The 1.0.1 upgrade backfill stamps every pre-existing punishment in one statement rather than one per distinct warning id, which leaves no SQL query inside a loop anywhere in the extension. The stamps it produces are unchanged.
+
+**Upgrading**
+
+Nothing to do beyond the usual update step, and no database changes. Boards which already had email notifications enabled will begin actually sending them.
+
 ### 1.0.2 — 2026-09-19
 
 **Fixed**
