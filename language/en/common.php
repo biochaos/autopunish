@@ -16,7 +16,6 @@ $lang = array_merge($lang, [
 	'ACP_AUTOPUNISH'          => 'AutoPunish',
 	'ACP_AUTOPUNISH_SETTINGS' => 'Settings',
 	'ACP_AUTOPUNISH_TIERS'    => 'Punishment Tiers',
-	'ACP_AUTOPUNISH_USER'     => 'User Management',
 	// Label shown in the Manage Users mode dropdown
 	'ACP_USER_AUTOPUNISH'     => 'AutoPunish',
 
@@ -44,6 +43,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_NOTIFY_EMAIL'           => 'Enable email notifications',
 	'AUTOPUNISH_NOTIFY_SENDER'          => 'Username of PM/Email sender',
 	'AUTOPUNISH_NOTIFY_SENDER_EXPLAIN'    => 'Required when PM or email notifications are enabled.',
+	'AUTOPUNISH_NOTIFY_SENDER_AUTOCOMPLETE' => '(autocomplete)',
 	'AUTOPUNISH_SENDER_REQUIRED'          => 'A sender username is required when PM or email notifications are enabled.',
 	'AUTOPUNISH_SENDER_MISSING_WARNING'   => 'Warning: the configured sender account no longer exists. PM and email notifications are currently not being sent.',
 	'AUTOPUNISH_NOTIFY_SUBJECT'         => 'PM/Email subject line',
@@ -77,7 +77,6 @@ $lang = array_merge($lang, [
 	'ACP_AUTOPUNISH_TIERS_SAVED'        => 'Tiers saved.',
 
 	// User management page
-	'AUTOPUNISH_SELECT_USER'            => 'Select user',
 	'AUTOPUNISH_STATUS_SUMMARY'         => 'AutoPunish Status',
 	'AUTOPUNISH_CURRENT_WARNINGS'       => 'Active warnings',
 	'AUTOPUNISH_TOTAL_PUNISHMENTS'      => 'Total punishments',

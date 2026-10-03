@@ -16,7 +16,6 @@ $lang = array_merge($lang, [
 	'ACP_AUTOPUNISH'          => 'ענישה אוטומטית',
 	'ACP_AUTOPUNISH_SETTINGS' => 'הגדרות',
 	'ACP_AUTOPUNISH_TIERS'    => 'רמות ענישה',
-	'ACP_AUTOPUNISH_USER'     => 'ניהול משתמשים',
 	// Label shown in the Manage Users mode dropdown
 	'ACP_USER_AUTOPUNISH'     => 'ענישה אוטומטית',
 
@@ -44,6 +43,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_NOTIFY_EMAIL'           => 'הפעל התראות דואר אלקטרוני',
 	'AUTOPUNISH_NOTIFY_SENDER'            => 'שולח ההודעות/מייל (מזהה משתמש)',
 	'AUTOPUNISH_NOTIFY_SENDER_EXPLAIN'    => 'מזהה המשתמש שממנו נשלחות ההודעות הפרטיות והמיילים. השאר 0 לברירת המחדל.',
+	'AUTOPUNISH_NOTIFY_SENDER_AUTOCOMPLETE' => '(השלמה אוטומטית)',
 	'AUTOPUNISH_SENDER_REQUIRED'          => 'נדרש שם משתמש שולח כאשר הודעות פרטיות או מייל מופעלים.',
 	'AUTOPUNISH_SENDER_MISSING_WARNING'   => 'אזהרה: חשבון השולח המוגדר אינו קיים עוד. הודעות פרטיות ומיילים אינם נשלחים כרגע.',
 	'AUTOPUNISH_NOTIFY_SUBJECT'         => 'שורת נושא להודעה פרטית/מייל',
@@ -77,7 +77,6 @@ $lang = array_merge($lang, [
 	'ACP_AUTOPUNISH_TIERS_SAVED'        => 'הרמות נשמרו.',
 
 	// User management page
-	'AUTOPUNISH_SELECT_USER'            => 'בחר משתמש',
 	'AUTOPUNISH_STATUS_SUMMARY'         => 'סטטוס ענישה אוטומטית',
 	'AUTOPUNISH_CURRENT_WARNINGS'       => 'אזהרות פעילות',
 	'AUTOPUNISH_TOTAL_PUNISHMENTS'      => 'סך כל העונשים שניתנו',

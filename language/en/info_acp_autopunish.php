@@ -15,5 +15,4 @@ $lang = array_merge($lang, [
 	'ACP_AUTOPUNISH'          => 'AutoPunish',
 	'ACP_AUTOPUNISH_SETTINGS' => 'Settings',
 	'ACP_AUTOPUNISH_TIERS'    => 'Punishment Tiers',
-	'ACP_AUTOPUNISH_USER'     => 'User Management',
 ]);

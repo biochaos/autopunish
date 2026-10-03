@@ -16,7 +16,6 @@ $lang = array_merge($lang, [
 	'ACP_AUTOPUNISH'          => 'AutoPunish',
 	'ACP_AUTOPUNISH_SETTINGS' => 'Configurações',
 	'ACP_AUTOPUNISH_TIERS'    => 'Níveis de punição',
-	'ACP_AUTOPUNISH_USER'     => 'Gestão de utilizadores',
 	// Label shown in the Manage Users mode dropdown
 	'ACP_USER_AUTOPUNISH'     => 'AutoPunish',
 
@@ -44,6 +43,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_NOTIFY_EMAIL'           => 'Ativar notificações por e-mail',
 	'AUTOPUNISH_NOTIFY_SENDER'          => 'Nome de utilizador do remetente de MP/e-mail',
 	'AUTOPUNISH_NOTIFY_SENDER_EXPLAIN'  => 'Necessário quando as notificações por MP ou e-mail estão ativas.',
+	'AUTOPUNISH_NOTIFY_SENDER_AUTOCOMPLETE' => '(preenchimento automático)',
 	'AUTOPUNISH_SENDER_REQUIRED'        => 'É necessário um nome de utilizador remetente quando as notificações por MP ou e-mail estão ativas.',
 	'AUTOPUNISH_SENDER_MISSING_WARNING' => 'Aviso: a conta do remetente configurado já não existe. As notificações por MP e e-mail não estão a ser enviadas.',
 	'AUTOPUNISH_NOTIFY_SUBJECT'         => 'Assunto do MP/e-mail',
@@ -77,7 +77,6 @@ $lang = array_merge($lang, [
 	'ACP_AUTOPUNISH_TIERS_SAVED'        => 'Níveis guardados.',
 
 	// User management page
-	'AUTOPUNISH_SELECT_USER'            => 'Selecionar utilizador',
 	'AUTOPUNISH_STATUS_SUMMARY'         => 'Estado do AutoPunish',
 	'AUTOPUNISH_CURRENT_WARNINGS'       => 'Avisos ativos',
 	'AUTOPUNISH_TOTAL_PUNISHMENTS'      => 'Total de punições',

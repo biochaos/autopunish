@@ -16,7 +16,6 @@ $lang = array_merge($lang, [
 	'ACP_AUTOPUNISH'          => 'AutoPunish',
 	'ACP_AUTOPUNISH_SETTINGS' => 'Paramètres',
 	'ACP_AUTOPUNISH_TIERS'    => 'Niveaux de sanction',
-	'ACP_AUTOPUNISH_USER'     => 'Gestion des utilisateurs',
 	// Label shown in the Manage Users mode dropdown
 	'ACP_USER_AUTOPUNISH'     => 'AutoPunish',
 
@@ -44,6 +43,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_NOTIFY_EMAIL'           => 'Activer les notifications par e-mail',
 	'AUTOPUNISH_NOTIFY_SENDER'          => 'Nom d\'utilisateur de l\'expéditeur MP/e-mail',
 	'AUTOPUNISH_NOTIFY_SENDER_EXPLAIN'  => 'Requis lorsque les notifications par MP ou e-mail sont activées.',
+	'AUTOPUNISH_NOTIFY_SENDER_AUTOCOMPLETE' => '(saisie automatique)',
 	'AUTOPUNISH_SENDER_REQUIRED'        => 'Un nom d\'utilisateur expéditeur est requis lorsque les notifications par MP ou e-mail sont activées.',
 	'AUTOPUNISH_SENDER_MISSING_WARNING' => 'Attention : le compte expéditeur configuré n\'existe plus. Les notifications par MP et e-mail ne sont actuellement pas envoyées.',
 	'AUTOPUNISH_NOTIFY_SUBJECT'         => 'Objet du MP/e-mail',
@@ -77,7 +77,6 @@ $lang = array_merge($lang, [
 	'ACP_AUTOPUNISH_TIERS_SAVED'        => 'Niveaux sauvegardés.',
 
 	// User management page
-	'AUTOPUNISH_SELECT_USER'            => 'Sélectionner un utilisateur',
 	'AUTOPUNISH_STATUS_SUMMARY'         => 'Statut AutoPunish',
 	'AUTOPUNISH_CURRENT_WARNINGS'       => 'Avertissements actifs',
 	'AUTOPUNISH_TOTAL_PUNISHMENTS'      => 'Total des sanctions',
