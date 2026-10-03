@@ -66,9 +66,11 @@ class tier_manager
 	{
 		$this->db->sql_query('DELETE FROM ' . $this->tiers_table);
 
+		$rows = [];
+
 		foreach ($tiers as $order => $tier)
 		{
-			$sql_ary = [
+			$rows[] = [
 				'tier_order'        => (int) $order + 1,
 				'warning_threshold' => (int) $tier['warning_threshold'],
 				'action'            => ($tier['action'] === 'deactivate') ? 'deactivate' : 'group',
@@ -77,8 +79,9 @@ class tier_manager
 				'reason_text'       => (string) ($tier['reason_text'] ?? ''),
 				'notification_text' => (string) ($tier['notification_text'] ?? ''),
 			];
-			$this->db->sql_query('INSERT INTO ' . $this->tiers_table . ' ' . $this->db->sql_build_array('INSERT', $sql_ary));
 		}
+
+		$this->db->sql_multi_insert($this->tiers_table, $rows);
 	}
 
 }
