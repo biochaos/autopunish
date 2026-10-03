@@ -13,7 +13,7 @@
 		<th>{L_AUTOPUNISH_NEXT_OFFENSE}</th>
 		<td>
 			<!-- IF NEXT_TIER_ACTION -->
-				#{NEXT_OFFENSE_NUMBER} &mdash; {NEXT_TIER_ACTION}<!-- IF NEXT_TIER_REASON --> ({NEXT_TIER_REASON})<!-- ENDIF -->, {L_AUTOPUNISH_THRESHOLD}: &ge;{NEXT_TIER_THRESHOLD}
+				#{NEXT_OFFENSE_NUMBER} &mdash; {NEXT_TIER_ACTION}<!-- IF NEXT_TIER_REASON --> ({NEXT_TIER_REASON|escape('html')})<!-- ENDIF -->, {L_AUTOPUNISH_THRESHOLD}: &ge;{NEXT_TIER_THRESHOLD}
 				<!-- IF S_IS_REPEATING --> <em>({L_AUTOPUNISH_REPEATING})</em><!-- ENDIF -->
 			<!-- ELSE -->
 				{L_AUTOPUNISH_NO_TIERS}
@@ -25,7 +25,7 @@
 		<th>{L_AUTOPUNISH_CURRENT_PUNISHMENT}</th>
 		<td>
 			{L_AUTOPUNISH_OFFENSE} #{ACTIVE_OFFENSE_NUMBER} &mdash; {ACTIVE_ACTION}
-			<!-- IF ACTIVE_REASON --> ({ACTIVE_REASON})<!-- ENDIF -->
+			<!-- IF ACTIVE_REASON --> ({ACTIVE_REASON|escape('html')})<!-- ENDIF -->
 			<!-- IF ACTIVE_END_TIME -->
 				, {L_AUTOPUNISH_EXPIRES}: {ACTIVE_END_TIME}
 			<!-- ELSE -->
@@ -43,7 +43,7 @@
 <div class="panel">
 <div class="inner">
 <h2>{L_AUTOPUNISH_END_EARLY}</h2>
-<form method="post" action="{U_ACTION}" onsubmit="return confirm('{L_AUTOPUNISH_END_EARLY_CONFIRM}')">
+<form method="post" action="{U_ACTION}" onsubmit="return confirm('{LA_AUTOPUNISH_END_EARLY_CONFIRM}')">
 	<input type="hidden" name="punishment_id" value="{ACTIVE_PUNISHMENT_ID}" />
 	<input type="hidden" name="active_offense_number" value="{ACTIVE_OFFENSE_NUMBER}" />
 	{S_FORM_TOKEN}
@@ -82,7 +82,7 @@
 <div class="panel">
 <div class="inner">
 <h2>{L_AUTOPUNISH_PUNISHMENT_HISTORY}</h2>
-<!-- IF not punishment_history.S_NUM_ROWS -->
+<!-- IF not .punishment_history -->
 <p>{L_AUTOPUNISH_NO_HISTORY}</p>
 <!-- ELSE -->
 <table class="table1">
@@ -103,7 +103,7 @@
 		<td>{punishment_history.OFFENSE_NUMBER}</td>
 		<td>{punishment_history.ACTION}</td>
 		<td>{punishment_history.GROUP_ID}</td>
-		<td>{punishment_history.REASON}</td>
+		<td>{punishment_history.REASON|escape('html')}</td>
 		<td>{punishment_history.START_TIME}</td>
 		<td>{punishment_history.END_TIME}</td>
 		<td><!-- IF punishment_history.ACTIVE --><strong>{L_AUTOPUNISH_ACTIVE}</strong><!-- ELSE -->{L_AUTOPUNISH_EXPIRED_STATUS}<!-- ENDIF --></td>
