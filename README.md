@@ -1,4 +1,5 @@
 # AutoPunish
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/biochaos/autopunish/total?color=red)
 
 A phpBB extension that automatically punishes users when they accumulate warnings, with configurable punishment tiers and durations.
 
