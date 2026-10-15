@@ -45,7 +45,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_NOTIFY_SENDER_EXPLAIN'    => 'מזהה המשתמש שממנו נשלחות ההודעות הפרטיות והמיילים. השאר 0 לברירת המחדל.',
 	'AUTOPUNISH_NOTIFY_SENDER_AUTOCOMPLETE' => '(השלמה אוטומטית)',
 	'AUTOPUNISH_SENDER_REQUIRED'          => 'נדרש שם משתמש שולח כאשר הודעות פרטיות או מייל מופעלים.',
-	'AUTOPUNISH_SENDER_MISSING_WARNING'   => 'אזהרה: חשבון השולח המוגדר אינו קיים עוד. הודעות פרטיות ומיילים אינם נשלחים כרגע.',
+	'AUTOPUNISH_SENDER_MISSING_WARNING'   => 'אזהרה: חשבון השולח המוגדר אינו קיים עוד. הודעות פרטיות אינן נשלחות כרגע. בחרו שולח חדש כדי לחדש את שליחתן.',
 	'AUTOPUNISH_NOTIFY_SUBJECT'         => 'שורת נושא להודעה פרטית/מייל',
 	'AUTOPUNISH_NOTIFY_SUBJECT_EXPLAIN' => 'השאר ריק כדי להשתמש בטקסט ההתראה של הרמה כנושא.',
 	'AUTOPUNISH_NOTIFY_FOOTER'                  => 'טקסט כותרת תחתונה להודעות',
@@ -133,6 +133,7 @@ $lang = array_merge($lang, [
 	'LOG_AUTOPUNISH_RESTARTED'    => '<strong>AutoPunish:</strong> טיימר העונש של המשתמש &quot;%1$s&quot; אופס — עבירה #%2$d',
 	'LOG_AUTOPUNISH_ESCALATED'    => '<strong>AutoPunish:</strong> עונשו של המשתמש &quot;%1$s&quot; הוסלם — עבירה #%2$d → #%3$d',
 	'LOG_AUTOPUNISH_DRY_RUN'      => '<strong>AutoPunish [ניסוי]:</strong> המשתמש &quot;%1$s&quot; היה נענש — עבירה #%2$d, פעולה: %3$s',
+	'LOG_AUTOPUNISH_DRY_RUN_RESTART' => '<strong>AutoPunish [ניסוי]:</strong> טיימר העונש של המשתמש &quot;%1$s&quot; היה מתאפס — עבירה #%2$d',
 	'LOG_AUTOPUNISH_RETROACTIVE'    => '<strong>AutoPunish:</strong> סריקה רטרואקטיבית הושלמה — %1$d משתמשים נענשו',
-	'LOG_AUTOPUNISH_SENDER_MISSING' => '<strong>AutoPunish:</strong> שליחת התראה בוטלה — חשבון השולח (מזהה %1$d) אינו קיים עוד. עדכן את השולח בהגדרות AutoPunish.',
+	'LOG_AUTOPUNISH_SENDER_MISSING' => '<strong>AutoPunish:</strong> שליחת הודעה פרטית בוטלה — חשבון השולח (מזהה %1$d) אינו קיים עוד. עדכן את השולח בהגדרות AutoPunish.',
 ]);

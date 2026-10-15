@@ -70,12 +70,17 @@ class tier_manager
 
 		foreach ($tiers as $order => $tier)
 		{
+			$action = ($tier['action'] === 'deactivate') ? 'deactivate' : 'group';
+
+			// The tiers page hides the duration of a deactivate tier but still
+			// submits it, so a tier switched from "add to group" would otherwise
+			// keep its old duration. Deactivation is always permanent.
 			$rows[] = [
 				'tier_order'        => (int) $order + 1,
 				'warning_threshold' => (int) $tier['warning_threshold'],
-				'action'            => ($tier['action'] === 'deactivate') ? 'deactivate' : 'group',
+				'action'            => $action,
 				'group_id'          => (int) ($tier['group_id'] ?? 0),
-				'duration_seconds'  => (int) ($tier['duration_seconds'] ?? 0),
+				'duration_seconds'  => ($action === 'deactivate') ? 0 : (int) ($tier['duration_seconds'] ?? 0),
 				'reason_text'       => (string) ($tier['reason_text'] ?? ''),
 				'notification_text' => (string) ($tier['notification_text'] ?? ''),
 			];

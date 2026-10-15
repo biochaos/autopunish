@@ -37,7 +37,7 @@ Enabling installs four example tiers, written in the administrator's language: a
 ## Updating
 
 1. Download the new release and extract it over the existing `ext/biochaos/autopunish/` directory.
-2. If the release notes say it includes a database change, apply it: in the ACP, **disable** AutoPunish and then **enable** it again (this keeps all data — do not click *Delete data*), or from the command line run `php bin/phpbbcli.php db:migrate`.
+2. If the release notes say it includes a database change, apply it. From the command line, run `php bin/phpbbcli.php db:migrate`. Without shell access, **disable** AutoPunish in the ACP and then **enable** it again — this keeps all data, but do not click *Delete data*. (`php bin/phpbbcli.php extension:enable` does not work for this: it does nothing for an extension that is already enabled.)
 3. Purge the board cache (**ACP → General → Purge the cache**).
 
 ## How it works
@@ -66,7 +66,7 @@ All settings are in the ACP under **Extensions → AutoPunish**.
 | Warning during active punishment | What to do when a user receives a warning while already under a punishment (see below). |
 | Expiry check interval | How often (in minutes) the cron task checks for expired punishments. |
 | Exempt groups | Users in these groups are never punished. |
-| Dry-run mode | Log punishments without applying them. Disable once you are satisfied with your tier configuration. |
+| Dry-run mode | Log the punishments that would be applied, without applying them. Nothing is logged for a warning below the threshold, and an active punishment is never restarted, replaced or escalated while dry run is on. Disable once you are satisfied with your tier configuration. |
 | Retroactive scan | Tick and save once to immediately punish all users who already meet a threshold. Founders and users who already have an active punishment are skipped. The checkbox resets automatically after the scan runs. |
 | Notifications | Enable bell notifications, PMs, and/or emails, and set the texts — see [Notifications](#notifications). |
 
@@ -155,6 +155,24 @@ The group also needs some way into the ACP and the Manage Users page — in prac
 Everything AutoPunish does is written to the admin log (**Maintenance → Admin log**): punishments applied, expired, restarted, escalated and ended early, commutations, dry-run results, retroactive scan totals, and PMs skipped because the sender account is missing. Actions taken from the Manage Users tab are logged under the name of the person who took them.
 
 ## Changelog
+
+### 1.1.1 — 2026-10-15
+
+**Fixed**
+
+- **A deactivation could lapse and leave the account deactivated with nothing to undo it.** The Punishment Tiers page hides the duration of a "deactivate account" tier, but still submitted and saved it, so a tier switched from "add to group" to "deactivate" kept its old duration. Its punishments were given an end time, and when that came the expiry cron marked them expired, which only ever removes a group membership. The account stayed deactivated, and with no active punishment left there was no *End punishment early* button to reactivate it from.
+
+  Deactivation is now always permanent, as documented: a deactivate tier is saved without a duration, and one already stored is ignored when punishing. The update clears the duration from existing deactivate tiers and makes any active deactivation permanent. A deactivation that has already lapsed is left as it is — if one of your users is in that state, reactivate the account from **Manage users** in the usual way.
+
+- **Dry-run mode logged punishments that would not have happened, and changed active punishments for real.** The dry-run log entry was written before the warning threshold was checked, so every warning given to a user without an active punishment logged "would be punished", even far below the threshold. And for a user who already had an active punishment, dry run was not checked at all: the next warning restarted, replaced or escalated that punishment exactly as if dry run were off.
+
+  Dry run now logs only a punishment that would really be applied, and leaves active punishments untouched in all three *Warning during active punishment* modes, logging what it would have done instead.
+
+- **The missing-sender warning said email notifications had stopped.** When the account chosen as the notification sender is deleted, only private messages stop — emails are sent from the board's own address and keep going. The warning on the Settings page and the admin log entry now say PMs only.
+
+**Upgrading**
+
+This release includes a database change; see [Updating](#updating).
 
 ### 1.1.0 — 2026-10-15
 

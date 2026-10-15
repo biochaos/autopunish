@@ -125,19 +125,19 @@ class punishment_manager
 			return false;
 		}
 
-		if ($this->config['autopunish_dry_run'])
+		if ($user_warnings < $tier['warning_threshold'])
 		{
-			$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_DRY_RUN', false, [$user_data['username'], $offense_number, $tier['action']]);
 			return false;
 		}
 
-		if ($user_warnings >= $tier['warning_threshold'])
+		if ($this->config['autopunish_dry_run'])
 		{
-			$this->apply_punishment($user_id, $user_data['username'], $offense_number, $tier);
-			return true;
+			$this->log_dry_run($user_data['username'], $offense_number, $tier);
+			return false;
 		}
 
-		return false;
+		$this->apply_punishment($user_id, $user_data['username'], $offense_number, $tier);
+		return true;
 	}
 
 	/**
@@ -386,6 +386,12 @@ class punishment_manager
 			case 'restart':
 				if ($active['end_time'] > 0)
 				{
+					if ($this->config['autopunish_dry_run'])
+					{
+						$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_DRY_RUN_RESTART', false, [$username, $active['offense_number']]);
+						return false;
+					}
+
 					$duration = $active['end_time'] - $active['start_time'];
 					$now      = time();
 					$this->db->sql_query('UPDATE ' . $this->punishments_table . '
@@ -402,6 +408,12 @@ class punishment_manager
 				$tier           = $this->tier_manager->get_tier_for_offense($offense_number);
 				if ($tier && $user_warnings >= $tier['warning_threshold'])
 				{
+					if ($this->config['autopunish_dry_run'])
+					{
+						$this->log_dry_run($username, $offense_number, $tier);
+						return false;
+					}
+
 					$this->end_active_punishment($active);
 					$this->apply_punishment($user_id, $username, $offense_number, $tier);
 					return true;
@@ -415,6 +427,11 @@ class punishment_manager
 				{
 					break;
 				}
+				if ($this->config['autopunish_dry_run'])
+				{
+					$this->log_dry_run($username, $offense_number, $tier);
+					return false;
+				}
 				$this->end_active_punishment($active);
 				$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_ESCALATED', false,
 					[$username, $active['offense_number'], $offense_number]);
@@ -426,8 +443,24 @@ class punishment_manager
 		return false;
 	}
 
+	/**
+	 * Logs the punishment that dry-run mode is holding back.
+	 */
+	private function log_dry_run($username, $offense_number, array $tier)
+	{
+		$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_DRY_RUN', false, [$username, $offense_number, $tier['action']]);
+	}
+
 	private function apply_punishment($user_id, $username, $offense_number, array $tier)
 	{
+		// Deactivation is always permanent: expiry only ever removes a group
+		// membership, so a deactivation given an end time would lapse while
+		// leaving the account deactivated.
+		if ($tier['action'] === 'deactivate')
+		{
+			$tier['duration_seconds'] = 0;
+		}
+
 		$now      = time();
 		$end_time = ($tier['duration_seconds'] > 0) ? ($now + (int) $tier['duration_seconds']) : 0;
 

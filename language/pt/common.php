@@ -45,7 +45,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_NOTIFY_SENDER_EXPLAIN'  => 'Necessário quando as notificações por MP ou e-mail estão ativas.',
 	'AUTOPUNISH_NOTIFY_SENDER_AUTOCOMPLETE' => '(preenchimento automático)',
 	'AUTOPUNISH_SENDER_REQUIRED'        => 'É necessário um nome de utilizador remetente quando as notificações por MP ou e-mail estão ativas.',
-	'AUTOPUNISH_SENDER_MISSING_WARNING' => 'Aviso: a conta do remetente configurado já não existe. As notificações por MP e e-mail não estão a ser enviadas.',
+	'AUTOPUNISH_SENDER_MISSING_WARNING' => 'Aviso: a conta do remetente configurado já não existe. As notificações por mensagem privada não estão a ser enviadas. Escolha um novo remetente para as retomar.',
 	'AUTOPUNISH_NOTIFY_SUBJECT'         => 'Assunto do MP/e-mail',
 	'AUTOPUNISH_NOTIFY_SUBJECT_EXPLAIN' => 'Deixar em branco para usar o texto de notificação do nível como assunto.',
 	'AUTOPUNISH_NOTIFY_FOOTER'                  => 'Texto de rodapé do MP/e-mail',
@@ -133,6 +133,7 @@ $lang = array_merge($lang, [
 	'LOG_AUTOPUNISH_RESTARTED'      => '<strong>AutoPunish:</strong> temporizador de punição do utilizador &quot;%1$s&quot; reiniciado — infração n.º%2$d',
 	'LOG_AUTOPUNISH_ESCALATED'      => '<strong>AutoPunish:</strong> punição do utilizador &quot;%1$s&quot; escalada — infração n.º%2$d → n.º%3$d',
 	'LOG_AUTOPUNISH_DRY_RUN'        => '<strong>AutoPunish [SIMULAÇÃO]:</strong> o utilizador &quot;%1$s&quot; teria sido punido — infração n.º%2$d, ação: %3$s',
+	'LOG_AUTOPUNISH_DRY_RUN_RESTART' => '<strong>AutoPunish [SIMULAÇÃO]:</strong> o temporizador da punição do utilizador &quot;%1$s&quot; teria sido reiniciado — infração n.º%2$d',
 	'LOG_AUTOPUNISH_RETROACTIVE'    => '<strong>AutoPunish:</strong> análise retroativa concluída — %1$d utilizadores punidos',
-	'LOG_AUTOPUNISH_SENDER_MISSING' => '<strong>AutoPunish:</strong> notificação MP/e-mail ignorada — o remetente (ID %1$d) já não existe. Atualize o remetente nas configurações do AutoPunish.',
+	'LOG_AUTOPUNISH_SENDER_MISSING' => '<strong>AutoPunish:</strong> notificação por mensagem privada ignorada — o remetente (ID %1$d) já não existe. Atualize o remetente nas configurações do AutoPunish.',
 ]);

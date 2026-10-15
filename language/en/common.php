@@ -45,7 +45,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_NOTIFY_SENDER_EXPLAIN'    => 'Required when PM or email notifications are enabled.',
 	'AUTOPUNISH_NOTIFY_SENDER_AUTOCOMPLETE' => '(autocomplete)',
 	'AUTOPUNISH_SENDER_REQUIRED'          => 'A sender username is required when PM or email notifications are enabled.',
-	'AUTOPUNISH_SENDER_MISSING_WARNING'   => 'Warning: the configured sender account no longer exists. PM and email notifications are currently not being sent.',
+	'AUTOPUNISH_SENDER_MISSING_WARNING'   => 'Warning: the configured sender account no longer exists. Private message notifications are currently not being sent. Choose a new sender to resume them.',
 	'AUTOPUNISH_NOTIFY_SUBJECT'         => 'PM/Email subject line',
 	'AUTOPUNISH_NOTIFY_SUBJECT_EXPLAIN' => 'Leave blank to use the tier\'s notification text as the subject.',
 	'AUTOPUNISH_NOTIFY_FOOTER'                  => 'PM/Email footer text',
@@ -134,6 +134,7 @@ $lang = array_merge($lang, [
 	'LOG_AUTOPUNISH_RESTARTED'    => '<strong>AutoPunish:</strong> user &quot;%1$s&quot; punishment timer restarted — offense #%2$d',
 	'LOG_AUTOPUNISH_ESCALATED'    => '<strong>AutoPunish:</strong> user &quot;%1$s&quot; punishment escalated — offense #%2$d → #%3$d',
 	'LOG_AUTOPUNISH_DRY_RUN'      => '<strong>AutoPunish [DRY RUN]:</strong> user &quot;%1$s&quot; would be punished — offense #%2$d, action: %3$s',
+	'LOG_AUTOPUNISH_DRY_RUN_RESTART' => '<strong>AutoPunish [DRY RUN]:</strong> user &quot;%1$s&quot; would have their punishment timer restarted — offense #%2$d',
 	'LOG_AUTOPUNISH_RETROACTIVE'    => '<strong>AutoPunish:</strong> Retroactive scan completed — %1$d users punished',
-	'LOG_AUTOPUNISH_SENDER_MISSING' => '<strong>AutoPunish:</strong> PM/email notification skipped — sender user ID %1$d no longer exists. Update the sender in AutoPunish settings.',
+	'LOG_AUTOPUNISH_SENDER_MISSING' => '<strong>AutoPunish:</strong> Private message notification skipped — sender user ID %1$d no longer exists. Update the sender in AutoPunish settings.',
 ]);

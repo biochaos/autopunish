@@ -45,7 +45,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_NOTIFY_SENDER_EXPLAIN'  => 'Requis lorsque les notifications par MP ou e-mail sont activées.',
 	'AUTOPUNISH_NOTIFY_SENDER_AUTOCOMPLETE' => '(saisie automatique)',
 	'AUTOPUNISH_SENDER_REQUIRED'        => 'Un nom d\'utilisateur expéditeur est requis lorsque les notifications par MP ou e-mail sont activées.',
-	'AUTOPUNISH_SENDER_MISSING_WARNING' => 'Attention : le compte expéditeur configuré n\'existe plus. Les notifications par MP et e-mail ne sont actuellement pas envoyées.',
+	'AUTOPUNISH_SENDER_MISSING_WARNING' => 'Attention : le compte expéditeur configuré n\'existe plus. Les notifications par message privé ne sont actuellement pas envoyées. Choisissez un nouvel expéditeur pour les rétablir.',
 	'AUTOPUNISH_NOTIFY_SUBJECT'         => 'Objet du MP/e-mail',
 	'AUTOPUNISH_NOTIFY_SUBJECT_EXPLAIN' => 'Laisser vide pour utiliser le texte de notification du niveau comme objet.',
 	'AUTOPUNISH_NOTIFY_FOOTER'                  => 'Texte de pied de page MP/e-mail',
@@ -133,6 +133,7 @@ $lang = array_merge($lang, [
 	'LOG_AUTOPUNISH_RESTARTED'      => '<strong>AutoPunish :</strong> minuteur de sanction de l\'utilisateur &quot;%1$s&quot; réinitialisé — infraction n°%2$d',
 	'LOG_AUTOPUNISH_ESCALATED'      => '<strong>AutoPunish :</strong> sanction de l\'utilisateur &quot;%1$s&quot; escaladée — infraction n°%2$d → n°%3$d',
 	'LOG_AUTOPUNISH_DRY_RUN'        => '<strong>AutoPunish [SIMULATION] :</strong> l\'utilisateur &quot;%1$s&quot; aurait été sanctionné — infraction n°%2$d, action : %3$s',
+	'LOG_AUTOPUNISH_DRY_RUN_RESTART' => '<strong>AutoPunish [SIMULATION] :</strong> le délai de la sanction de l\'utilisateur &quot;%1$s&quot; aurait été relancé — infraction n°%2$d',
 	'LOG_AUTOPUNISH_RETROACTIVE'    => '<strong>AutoPunish :</strong> analyse rétroactive terminée — %1$d utilisateurs sanctionnés',
-	'LOG_AUTOPUNISH_SENDER_MISSING' => '<strong>AutoPunish :</strong> notification MP/e-mail ignorée — l\'expéditeur (ID %1$d) n\'existe plus. Mettez à jour l\'expéditeur dans les paramètres AutoPunish.',
+	'LOG_AUTOPUNISH_SENDER_MISSING' => '<strong>AutoPunish :</strong> notification par message privé ignorée — l\'expéditeur (ID %1$d) n\'existe plus. Mettez à jour l\'expéditeur dans les paramètres AutoPunish.',
 ]);
