@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.1.0 — 2026-10-15
+
+### Changed
+
+- **The AutoPunish tab in Manage Users has its own permission.** It used to require *Can alter board settings* (`a_board`), so the only way to show it to someone was to give them the board settings as well. It now requires the new admin permission *Can view and manage AutoPunish in Manage Users* (`a_autopunish`), listed under *Users & Groups* in the admin permissions. You can grant it to any user, group or role, for example global moderators who already have access to other Manage Users pages.
+
+  The AutoPunish Settings and Punishment Tiers pages still require `a_board`.
+
+- The README now documents all of the extension's behaviour: how punishments are triggered, the three modes for a warning during an active punishment, notifications, permissions, the admin log, updating, and what uninstalling leaves behind.
+
+### Upgrading
+
+This release includes a database change. After replacing the files, disable and re-enable AutoPunish in the ACP (keeping its data), or run `php bin/phpbbcli.php db:migrate`, then purge the cache. The update step adds the permission to the stock Full, Standard, Forum and User & Groups admin roles, so admins who use those roles keep the tab. Admins whose permissions are set directly rather than through one of those roles need to be granted `a_autopunish` by hand.
+
 ## 1.0.3 — 2026-10-03
 
 Addresses the notes from the phpBB Extension Customisations Team's validation of 1.0.0.
