@@ -54,7 +54,19 @@ class main_listener implements EventSubscriberInterface
 			'core.mcp_warn_user_after'    => 'on_warn_user',
 			'core.mcp_warn_post_after'    => 'on_warn_user',
 			'core.acp_users_mode_add'     => 'on_acp_users_mode_add',
+			'core.permissions'            => 'on_permissions',
 		];
+	}
+
+	/**
+	 * Register a_autopunish so it can be granted in the admin permissions.
+	 * Its label comes from language/<lang>/permissions_autopunish.php.
+	 */
+	public function on_permissions($event)
+	{
+		$permissions                 = $event['permissions'];
+		$permissions['a_autopunish'] = ['lang' => 'ACL_A_AUTOPUNISH', 'cat' => 'user_group'];
+		$event['permissions']        = $permissions;
 	}
 
 	/**
