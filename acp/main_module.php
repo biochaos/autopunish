@@ -59,14 +59,8 @@ class main_module
 				trigger_error($user->lang('FORM_INVALID') . adm_back_link($this->u_action), E_USER_WARNING);
 			}
 
-			$config->set('autopunish_enabled',               $request->variable('autopunish_enabled', 0));
-			$config->set('autopunish_warn_during_punishment', $request->variable('autopunish_warn_during_punishment', 'restart'));
-			$config->set('autopunish_cron_interval',          $request->variable('autopunish_cron_interval', 60));
-			$config->set('autopunish_dry_run',                $request->variable('autopunish_dry_run', 0));
-			$config->set('autopunish_notify_forum',           $request->variable('autopunish_notify_forum', 0));
-			$config->set('autopunish_notify_pm',              $request->variable('autopunish_notify_pm', 0));
-			$config->set('autopunish_notify_email',           $request->variable('autopunish_notify_email', 0));
-
+			// Resolve and validate the sender before anything is written, so a
+			// rejected form leaves every setting as it was.
 			$sender_username = $request->variable('autopunish_notify_sender_username', '', true);
 			$notify_pm    = $request->variable('autopunish_notify_pm', 0);
 			$notify_email = $request->variable('autopunish_notify_email', 0);
@@ -86,7 +80,15 @@ class main_module
 			{
 				trigger_error($user->lang('AUTOPUNISH_SENDER_REQUIRED') . adm_back_link($this->u_action), E_USER_WARNING);
 			}
-			$config->set('autopunish_notify_sender_id', $sender_id);
+
+			$config->set('autopunish_enabled',               $request->variable('autopunish_enabled', 0));
+			$config->set('autopunish_warn_during_punishment', $request->variable('autopunish_warn_during_punishment', 'restart'));
+			$config->set('autopunish_cron_interval',          $request->variable('autopunish_cron_interval', 60));
+			$config->set('autopunish_dry_run',                $request->variable('autopunish_dry_run', 0));
+			$config->set('autopunish_notify_forum',           $request->variable('autopunish_notify_forum', 0));
+			$config->set('autopunish_notify_pm',              $notify_pm);
+			$config->set('autopunish_notify_email',           $notify_email);
+			$config->set('autopunish_notify_sender_id',       $sender_id);
 
 			$config->set('autopunish_notify_subject',          $request->variable('autopunish_notify_subject', '', true));
 			$config->set('autopunish_notify_footer',          $request->variable('autopunish_notify_footer', '', true));
@@ -135,7 +137,7 @@ class main_module
 		{
 			$template->assign_block_vars('groups', [
 				'ID'       => $group['group_id'],
-				'NAME'     => $group['group_name'],
+				'NAME'     => $group['display_name'],
 				'SELECTED' => in_array($group['group_id'], $exempt_ids),
 			]);
 		}
@@ -167,8 +169,12 @@ class main_module
 
 	private function handle_tiers($request, $template, $config, $user, $tier_manager, $db)
 	{
-
 		add_form_key('acp_autopunish_tiers');
+
+		$groups    = $this->get_all_groups($db);
+		$group_ids = array_map('intval', array_column($groups, 'group_id'));
+		$errors    = [];
+		$tiers     = null;
 
 		if ($request->is_set_post('submit'))
 		{
@@ -197,19 +203,48 @@ class main_module
 				];
 			}
 
-			$tier_manager->save_tiers($tiers);
-			trigger_error($user->lang('ACP_AUTOPUNISH_TIERS_SAVED') . adm_back_link($this->u_action));
-		}
+			// A group tier must name a group that exists. On error the submitted
+			// rows are shown again, so nothing the administrator typed is lost.
+			foreach ($tiers as $i => $tier)
+			{
+				if ($tier['action'] === 'group' && !in_array($tier['group_id'], $group_ids, true))
+				{
+					$errors[] = $user->lang('AUTOPUNISH_TIER_GROUP_REQUIRED', $i + 1);
+				}
+			}
 
-		$tiers  = $tier_manager->get_all_tiers();
-		$groups = $this->get_all_groups($db);
+			if (empty($errors))
+			{
+				$tier_manager->save_tiers($tiers);
+				trigger_error($user->lang('ACP_AUTOPUNISH_TIERS_SAVED') . adm_back_link($this->u_action));
+			}
+		}
+		else
+		{
+			$tiers = $tier_manager->get_all_tiers();
+
+			// Stored group tiers without a valid group, such as the default tiers
+			// before their groups are chosen, are inactive until one is set.
+			$inactive = [];
+			foreach ($tiers as $i => $tier)
+			{
+				if ($tier['action'] === 'group' && !in_array((int) $tier['group_id'], $group_ids, true))
+				{
+					$inactive[] = $i + 1;
+				}
+			}
+			if ($inactive)
+			{
+				$errors[] = $user->lang('AUTOPUNISH_TIERS_INACTIVE', implode(', ', $inactive));
+			}
+		}
 
 		foreach ($tiers as $i => $tier)
 		{
 			[$duration_value, $duration_unit] = $this->seconds_to_duration($tier['duration_seconds']);
 
 			$tier_tpl = [
-				'TIER_ID'           => $tier['tier_id'],
+				'TIER_ID'           => $tier['tier_id'] ?? 0,
 				// TIER_ORDER is the number shown to the admin; TIER_INDEX is the
 				// form array key. They must not be the same value — the JS that
 				// appends a row indexes from zero, so a one-based key would make
@@ -221,8 +256,11 @@ class main_module
 				'GROUP_ID'          => $tier['group_id'],
 				'DURATION_VALUE'    => $duration_value,
 				'DURATION_UNIT'     => $duration_unit,
-				'REASON_TEXT'       => $tier['reason_text'],
-				'NOTIFICATION_TEXT' => $tier['notification_text'],
+				// Stored the way phpBB's request class returns text, HTML-escaped;
+				// the template escapes for its own context, so decode once here or
+				// every save would escape the text again.
+				'REASON_TEXT'       => htmlspecialchars_decode($tier['reason_text'], ENT_COMPAT),
+				'NOTIFICATION_TEXT' => htmlspecialchars_decode($tier['notification_text'], ENT_COMPAT),
 			];
 			$template->assign_block_vars('tiers', $tier_tpl);
 
@@ -230,7 +268,7 @@ class main_module
 			{
 				$template->assign_block_vars('tiers.groups', [
 					'ID'       => $group['group_id'],
-					'NAME'     => $group['group_name'],
+					'NAME'     => $group['display_name'],
 					'SELECTED' => $group['group_id'] == $tier['group_id'],
 				]);
 			}
@@ -241,12 +279,13 @@ class main_module
 		{
 			$template->assign_block_vars('groups', [
 				'ID'   => $group['group_id'],
-				'NAME' => $group['group_name'],
+				'NAME' => $group['display_name'],
 			]);
 		}
 
 		$template->assign_vars([
-			'U_ACTION'    => $this->u_action,
+			'U_ACTION'          => $this->u_action,
+			'AUTOPUNISH_ERRORS' => implode('<br />', $errors),
 		]);
 	}
 
@@ -254,16 +293,33 @@ class main_module
 	// Helpers
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Every group, with the name to display: phpBB's built-in groups are stored
+	 * under identifiers such as REGISTERED, which the group helper translates.
+	 * Sorted by that display name.
+	 */
 	private function get_all_groups($db)
 	{
+		global $phpbb_container;
+
+		/** @var \phpbb\group\helper $group_helper */
+		$group_helper = $phpbb_container->get('group_helper');
+
 		$groups = [];
-		$sql    = 'SELECT group_id, group_name FROM ' . GROUPS_TABLE . ' ORDER BY group_name ASC';
+		$sql    = 'SELECT group_id, group_name FROM ' . GROUPS_TABLE;
 		$result = $db->sql_query($sql);
 		while ($row = $db->sql_fetchrow($result))
 		{
+			// Group names are stored HTML-escaped; the templates escape them.
+			$row['display_name'] = htmlspecialchars_decode($group_helper->get_name($row['group_name']), ENT_COMPAT);
 			$groups[] = $row;
 		}
 		$db->sql_freeresult($result);
+
+		usort($groups, function ($a, $b) {
+			return strnatcasecmp($a['display_name'], $b['display_name']);
+		});
+
 		return $groups;
 	}
 
@@ -275,21 +331,30 @@ class main_module
 		}
 		switch ($unit)
 		{
-			case 'weeks':  return $value * 7 * 86400;
-			case 'months': return $value * 30 * 86400;
-			default:       return $value * 86400; // days
+			case 'weeks':
+				return $value * 7 * 86400;
+
+			case 'months':
+				return $value * 30 * 86400;
+
+			default: // days
+				return $value * 86400;
 		}
 	}
 
+	/**
+	 * The form's value and unit for a stored length, in the same units the
+	 * length is described in elsewhere.
+	 */
 	private function seconds_to_duration($seconds)
 	{
-		if ($seconds <= 0)
-		{
-			return [0, 'days'];
-		}
-		$days = $seconds / 86400;
-		if ($days % 30 === 0) return [$days / 30, 'months'];
-		if ($days % 7  === 0) return [$days / 7,  'weeks'];
-		return [$days, 'days'];
+		static $units = [
+			'AUTOPUNISH_DURATION_MONTHS' => 'months',
+			'AUTOPUNISH_DURATION_WEEKS'  => 'weeks',
+			'AUTOPUNISH_DURATION_DAYS'   => 'days',
+		];
+
+		[$key, $count] = \biochaos\autopunish\service\duration::lang_args($seconds);
+		return [$count, $units[$key] ?? 'days'];
 	}
 }

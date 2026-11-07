@@ -34,7 +34,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_RETROACTIVE'            => 'Ejecutar análisis retroactivo',
 	'AUTOPUNISH_RETROACTIVE_EXPLAIN'    => 'Cuando se marca y guarda, se ejecutará un análisis único para sancionar a los usuarios que ya cumplen el umbral. Esta casilla se restablece automáticamente tras el análisis.',
 	'ACP_AUTOPUNISH_SETTINGS_SAVED'     => 'Configuración guardada.',
-	'AUTOPUNISH_REQUIRES_PHPBB_330'     => 'AutoPunish requiere phpBB 3.3.0 o superior.',
+	'AUTOPUNISH_REQUIRES_PHPBB_331'     => 'AutoPunish requiere phpBB 3.3.1 o superior.',
 
 	// Notifications section
 	'AUTOPUNISH_NOTIFICATIONS'          => 'Notificaciones',
@@ -47,7 +47,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_SENDER_REQUIRED'        => 'Se requiere un nombre de usuario remitente cuando las notificaciones por MP o correo están activadas.',
 	'AUTOPUNISH_SENDER_MISSING_WARNING' => 'Advertencia: la cuenta del remitente configurado ya no existe. Las notificaciones por mensaje privado no se están enviando actualmente. Elija un nuevo remitente para reanudarlas.',
 	'AUTOPUNISH_NOTIFY_SUBJECT'         => 'Asunto del MP/correo',
-	'AUTOPUNISH_NOTIFY_SUBJECT_EXPLAIN' => 'Dejar en blanco para usar el texto de notificación del nivel como asunto.',
+	'AUTOPUNISH_NOTIFY_SUBJECT_EXPLAIN' => 'Dejar en blanco para usar el título de la notificación como asunto.',
 	'AUTOPUNISH_NOTIFY_FOOTER'                  => 'Texto de pie de página del MP/correo',
 	'AUTOPUNISH_NOTIFY_EXPIRY_SUBJECT'          => 'Asunto del MP/correo de expiración',
 	'AUTOPUNISH_NOTIFY_EXPIRY_SUBJECT_EXPLAIN'  => 'Dejar en blanco para usar el título de la notificación de expiración como asunto.',
@@ -75,6 +75,9 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_REMOVE_CONFIRM'         => '¿Eliminar este nivel?',
 	'AUTOPUNISH_ADD_TIER'               => 'Añadir nivel',
 	'ACP_AUTOPUNISH_TIERS_SAVED'        => 'Niveles guardados.',
+	'AUTOPUNISH_NOTIFICATION_TEXT_EXPLAIN' => 'Déjelo en blanco para enviar el texto predeterminado, en el idioma de cada usuario.',
+	'AUTOPUNISH_TIER_GROUP_REQUIRED' => 'El nivel %d añade usuarios a un grupo, pero no hay ningún grupo existente seleccionado. Elija un grupo o cambie la acción del nivel.',
+	'AUTOPUNISH_TIERS_INACTIVE' => 'Estos niveles no tienen ningún grupo seleccionado y están inactivos: %s. Nadie es sancionado en un nivel inactivo hasta que se le elija un grupo.',
 
 	// User management page
 	'AUTOPUNISH_STATUS_SUMMARY'         => 'Estado de AutoPunish',
@@ -86,6 +89,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_CURRENT_PUNISHMENT'     => 'Sanción activa actual',
 	'AUTOPUNISH_THRESHOLD'              => 'se activa en',
 	'AUTOPUNISH_REPEATING'              => 'repitiendo el último nivel',
+	'AUTOPUNISH_TIER_INACTIVE' => 'inactivo — ningún grupo seleccionado',
 	'AUTOPUNISH_NO_TIERS'               => 'No hay niveles configurados',
 	'AUTOPUNISH_OFFENSE'                => 'Infracción',
 	'AUTOPUNISH_EXPIRES'                => 'Expira',
@@ -134,6 +138,8 @@ $lang = array_merge($lang, [
 	'LOG_AUTOPUNISH_ESCALATED'      => '<strong>AutoPunish:</strong> sanción del usuario &quot;%1$s&quot; escalada — infracción n.º%2$d → n.º%3$d',
 	'LOG_AUTOPUNISH_DRY_RUN'        => '<strong>AutoPunish [SIMULACIÓN]:</strong> el usuario &quot;%1$s&quot; habría sido sancionado — infracción n.º%2$d, acción: %3$s',
 	'LOG_AUTOPUNISH_DRY_RUN_RESTART' => '<strong>AutoPunish [SIMULACIÓN]:</strong> se habría reiniciado el temporizador de la sanción del usuario &quot;%1$s&quot; — infracción n.º%2$d',
+	'LOG_AUTOPUNISH_TIER_INACTIVE' => '<strong>AutoPunish:</strong> el usuario &quot;%1$s&quot; no fue sancionado — el nivel de la infracción n.º%2$d no tiene un grupo válido seleccionado',
+	'LOG_AUTOPUNISH_GROUP_FAILED' => '<strong>AutoPunish:</strong> el usuario &quot;%1$s&quot; no fue sancionado — no se pudo añadir al grupo con ID %2$d (%3$s)',
 	'LOG_AUTOPUNISH_RETROACTIVE'    => '<strong>AutoPunish:</strong> análisis retroactivo completado — %1$d usuarios sancionados',
 	'LOG_AUTOPUNISH_SENDER_MISSING' => '<strong>AutoPunish:</strong> notificación por mensaje privado omitida — el remitente (ID %1$d) ya no existe. Actualice el remitente en la configuración de AutoPunish.',
 ]);

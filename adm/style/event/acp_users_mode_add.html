@@ -15,6 +15,7 @@
 			<!-- IF NEXT_TIER_ACTION -->
 				#{NEXT_OFFENSE_NUMBER} &mdash; {NEXT_TIER_ACTION}<!-- IF NEXT_TIER_REASON --> ({NEXT_TIER_REASON|escape('html')})<!-- ENDIF -->, {L_AUTOPUNISH_THRESHOLD}: &ge;{NEXT_TIER_THRESHOLD}
 				<!-- IF S_IS_REPEATING --> <em>({L_AUTOPUNISH_REPEATING})</em><!-- ENDIF -->
+				<!-- IF S_NEXT_TIER_INACTIVE --> <strong class="error">({L_AUTOPUNISH_TIER_INACTIVE})</strong><!-- ENDIF -->
 			<!-- ELSE -->
 				{L_AUTOPUNISH_NO_TIERS}
 			<!-- ENDIF -->
@@ -102,7 +103,7 @@
 	<tr<!-- IF punishment_history.ACTIVE --> class="row2"<!-- ENDIF -->>
 		<td>{punishment_history.OFFENSE_NUMBER}</td>
 		<td>{punishment_history.ACTION}</td>
-		<td>{punishment_history.GROUP_ID}</td>
+		<td><!-- IF punishment_history.GROUP_NAME -->{punishment_history.GROUP_NAME|escape('html')}<!-- ELSE -->&mdash;<!-- ENDIF --></td>
 		<td>{punishment_history.REASON|escape('html')}</td>
 		<td>{punishment_history.START_TIME}</td>
 		<td>{punishment_history.END_TIME}</td>

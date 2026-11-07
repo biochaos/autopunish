@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.2.0 — 2026-11-07
+
+### Fixed
+
+- **Disabling the extension broke the board for anyone with an AutoPunish notification.** The three notification types stayed switched on after the extension was disabled, so phpBB went on loading those members' notifications and failed to find the code behind them. Every page they opened showed a "Whoops" error, and *Delete data* did not clear it. The types are now switched off when the extension is disabled and back on when it is enabled, and *Delete data* removes them along with their notifications.
+- **Ending a punishment could remove a membership AutoPunish had not added.** A user who was already in a tier's group was "added" again, and when the punishment ended they were taken out of the group they had been in all along. Each punishment now records whether it made the change itself, and ending it only undoes that change. The same applies to deactivation: an account that was already deactivated stays deactivated when the punishment ends.
+- **A group tier with no group, or a deleted one, still "punished" users.** A punishment was recorded and the user notified, but nothing happened to the account. A group tier now needs a group that exists. The Tiers page refuses to save one without it, and keeps what you typed so you can fix it. A stored tier without a valid group, such as the default tiers before you choose their groups, is **inactive**: nobody is punished at it, the skip goes to the admin log, and the Tiers page and the Manage Users tab both show which tiers are inactive. An active punishment is no longer ended to make way for an inactive tier.
+- **Each save of the Tiers page escaped the text again.** A reason or notification text containing `&`, `"`, `<` or `>` gained another layer of HTML escaping every time the page was saved, so `Q&A` became `Q&amp;A`, then `Q&amp;amp;A`. Text now stays exactly as it was typed. Text already stored with extra escaping keeps it, and needs correcting by hand once.
+- **Bell notifications from the system cron showed raw language keys.** An expiry run by `bin/phpbbcli.php cron:run` produced text like "Your AUTOPUNISH_DURATION_PERMANENT punishment has expired", because the command line does not load the extension's language file. Bell text is now worded when it is shown, in the reader's own language, as PMs and emails already were. Notifications created by earlier versions still show as they were.
+- **Bell notifications ignored the user's notification settings.** Turning off an AutoPunish notification in the UCP had no effect. Those settings are now respected. The bell is the only method offered for these notifications, since PMs and emails are AutoPunish's own channels, controlled on its Settings page.
+- **Emails contained HTML entities and BBCode.** The email body was the PM text as stored, so a recipient could see `&quot;` and `[b]...[/b]`. Emails are now plain text, with BBCode removed and entities decoded.
+- **A rejected Settings save still changed some settings.** The sender was checked after seven settings had already been written, so turning PM notifications on with no sender was refused but left PMs switched on with nothing to send them. The sender is now checked first, and a refused save changes nothing.
+- **The Manage Users tab showed internal identifiers.** The action column showed `group` and `deactivate`, the group column showed a number, and built-in groups appeared as `REGISTERED` and the like, both there and in the group lists on the Settings and Tiers pages. All of them now show their translated names.
+
+### Changed
+
+- **phpBB 3.3.1 or later is required.** The Manage Users tab builds its return links from information that phpBB only passes to extensions from 3.3.1 on.
+- The default tiers install with empty notification texts, so each recipient gets the built-in default in their own language. Text filled in at install time was in the administrator's language and replaced that default for every recipient. Boards that already have the default tiers keep their texts.
+- The retroactive scan reads users in batches of 500, with three queries per batch for their punishment counts and warnings, instead of several queries per user.
+- The Hebrew translation of the sender field described a numeric user ID that could be left as 0. It now describes the username the field actually takes. The subject-line help text in all five languages said a blank subject used the tier's notification text, when it uses the notification title.
+- The one-line conditionals the validation notes pointed out are written out with braces, as the phpBB coding guidelines ask.
+
+### Upgrading
+
+This release includes a database change; run `php bin/phpbbcli.php db:migrate`, or disable and re-enable the extension in the ACP (keeping its data), then purge the cache. Punishments recorded before the update are treated as having made their own change, as before.
+
+After updating, open the Tiers page: any tier listed as inactive needs a group before it will punish anyone.
+
 ## 1.1.1 — 2026-10-15
 
 ### Fixed

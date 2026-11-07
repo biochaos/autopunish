@@ -3,6 +3,12 @@
 <h1>{L_ACP_AUTOPUNISH_TIERS}</h1>
 <p class="desc">{L_AUTOPUNISH_TIERS_EXPLAIN}</p>
 
+<!-- IF AUTOPUNISH_ERRORS -->
+<div class="errorbox">
+	<p>{AUTOPUNISH_ERRORS}</p>
+</div>
+<!-- ENDIF -->
+
 <form method="post" action="{U_ACTION}" id="tiers-form">
 
 <table class="table1" id="tiers-table">
@@ -14,7 +20,7 @@
 			<th>{L_AUTOPUNISH_GROUP}</th>
 			<th>{L_AUTOPUNISH_DURATION}</th>
 			<th>{L_AUTOPUNISH_REASON_TEXT}</th>
-			<th>{L_AUTOPUNISH_NOTIFICATION_TEXT}</th>
+			<th>{L_AUTOPUNISH_NOTIFICATION_TEXT}<br /><small>{L_AUTOPUNISH_NOTIFICATION_TEXT_EXPLAIN}</small></th>
 			<th>{L_AUTOPUNISH_REMOVE}</th>
 		</tr>
 	</thead>

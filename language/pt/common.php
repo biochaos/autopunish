@@ -34,7 +34,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_RETROACTIVE'            => 'Executar análise retroativa',
 	'AUTOPUNISH_RETROACTIVE_EXPLAIN'    => 'Quando marcado e guardado, será executada uma análise única para punir utilizadores que já cumprem o limiar. Esta caixa é reiniciada automaticamente após a análise.',
 	'ACP_AUTOPUNISH_SETTINGS_SAVED'     => 'Configurações guardadas.',
-	'AUTOPUNISH_REQUIRES_PHPBB_330'     => 'AutoPunish requer phpBB 3.3.0 ou superior.',
+	'AUTOPUNISH_REQUIRES_PHPBB_331'     => 'AutoPunish requer phpBB 3.3.1 ou superior.',
 
 	// Notifications section
 	'AUTOPUNISH_NOTIFICATIONS'          => 'Notificações',
@@ -47,7 +47,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_SENDER_REQUIRED'        => 'É necessário um nome de utilizador remetente quando as notificações por MP ou e-mail estão ativas.',
 	'AUTOPUNISH_SENDER_MISSING_WARNING' => 'Aviso: a conta do remetente configurado já não existe. As notificações por mensagem privada não estão a ser enviadas. Escolha um novo remetente para as retomar.',
 	'AUTOPUNISH_NOTIFY_SUBJECT'         => 'Assunto do MP/e-mail',
-	'AUTOPUNISH_NOTIFY_SUBJECT_EXPLAIN' => 'Deixar em branco para usar o texto de notificação do nível como assunto.',
+	'AUTOPUNISH_NOTIFY_SUBJECT_EXPLAIN' => 'Deixar em branco para usar o título da notificação como assunto.',
 	'AUTOPUNISH_NOTIFY_FOOTER'                  => 'Texto de rodapé do MP/e-mail',
 	'AUTOPUNISH_NOTIFY_EXPIRY_SUBJECT'          => 'Assunto do MP/e-mail de expiração',
 	'AUTOPUNISH_NOTIFY_EXPIRY_SUBJECT_EXPLAIN'  => 'Deixar em branco para usar o título da notificação de expiração como assunto.',
@@ -75,6 +75,9 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_REMOVE_CONFIRM'         => 'Remover este nível?',
 	'AUTOPUNISH_ADD_TIER'               => 'Adicionar nível',
 	'ACP_AUTOPUNISH_TIERS_SAVED'        => 'Níveis guardados.',
+	'AUTOPUNISH_NOTIFICATION_TEXT_EXPLAIN' => 'Deixe em branco para enviar o texto predefinido, no idioma de cada utilizador.',
+	'AUTOPUNISH_TIER_GROUP_REQUIRED' => 'O nível %d adiciona utilizadores a um grupo, mas nenhum grupo existente está selecionado. Escolha um grupo ou altere a ação do nível.',
+	'AUTOPUNISH_TIERS_INACTIVE' => 'Estes níveis não têm nenhum grupo selecionado e estão inativos: %s. Ninguém é punido num nível inativo até lhe ser atribuído um grupo.',
 
 	// User management page
 	'AUTOPUNISH_STATUS_SUMMARY'         => 'Estado do AutoPunish',
@@ -86,6 +89,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_CURRENT_PUNISHMENT'     => 'Punição ativa atual',
 	'AUTOPUNISH_THRESHOLD'              => 'ativa-se em',
 	'AUTOPUNISH_REPEATING'              => 'repetindo o último nível',
+	'AUTOPUNISH_TIER_INACTIVE' => 'inativo — nenhum grupo selecionado',
 	'AUTOPUNISH_NO_TIERS'               => 'Nenhum nível configurado',
 	'AUTOPUNISH_OFFENSE'                => 'Infração',
 	'AUTOPUNISH_EXPIRES'                => 'Expira',
@@ -134,6 +138,8 @@ $lang = array_merge($lang, [
 	'LOG_AUTOPUNISH_ESCALATED'      => '<strong>AutoPunish:</strong> punição do utilizador &quot;%1$s&quot; escalada — infração n.º%2$d → n.º%3$d',
 	'LOG_AUTOPUNISH_DRY_RUN'        => '<strong>AutoPunish [SIMULAÇÃO]:</strong> o utilizador &quot;%1$s&quot; teria sido punido — infração n.º%2$d, ação: %3$s',
 	'LOG_AUTOPUNISH_DRY_RUN_RESTART' => '<strong>AutoPunish [SIMULAÇÃO]:</strong> o temporizador da punição do utilizador &quot;%1$s&quot; teria sido reiniciado — infração n.º%2$d',
+	'LOG_AUTOPUNISH_TIER_INACTIVE' => '<strong>AutoPunish:</strong> o utilizador &quot;%1$s&quot; não foi punido — o nível da infração n.º%2$d não tem um grupo válido selecionado',
+	'LOG_AUTOPUNISH_GROUP_FAILED' => '<strong>AutoPunish:</strong> o utilizador &quot;%1$s&quot; não foi punido — não foi possível adicioná-lo ao grupo com ID %2$d (%3$s)',
 	'LOG_AUTOPUNISH_RETROACTIVE'    => '<strong>AutoPunish:</strong> análise retroativa concluída — %1$d utilizadores punidos',
 	'LOG_AUTOPUNISH_SENDER_MISSING' => '<strong>AutoPunish:</strong> notificação por mensagem privada ignorada — o remetente (ID %1$d) já não existe. Atualize o remetente nas configurações do AutoPunish.',
 ]);

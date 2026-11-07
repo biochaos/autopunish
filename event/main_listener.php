@@ -30,13 +30,17 @@ class main_listener implements EventSubscriberInterface
 	/** @var \phpbb\request\request */
 	private $request;
 
+	/** @var \phpbb\group\helper */
+	private $group_helper;
+
 	public function __construct(
 		\phpbb\config\config $config,
 		\biochaos\autopunish\service\punishment_manager $punishment_manager,
 		\biochaos\autopunish\service\tier_manager $tier_manager,
 		\phpbb\template\template $template,
 		\phpbb\user $user,
-		\phpbb\request\request_interface $request
+		\phpbb\request\request_interface $request,
+		\phpbb\group\helper $group_helper
 	)
 	{
 		$this->config             = $config;
@@ -45,6 +49,7 @@ class main_listener implements EventSubscriberInterface
 		$this->template           = $template;
 		$this->user               = $user;
 		$this->request            = $request;
+		$this->group_helper       = $group_helper;
 	}
 
 	public static function getSubscribedEvents()
@@ -160,16 +165,17 @@ class main_listener implements EventSubscriberInterface
 			'COMMUTED_OFFENSES'      => $commuted,
 			'EFFECTIVE_OFFENSES'     => max(0, $total - $commuted),
 			'NEXT_OFFENSE_NUMBER'    => $next_offense,
-			'NEXT_TIER_ACTION'       => $next_tier ? $next_tier['action'] : '',
-			'NEXT_TIER_REASON'       => $next_tier ? $next_tier['reason_text'] : '',
+			'NEXT_TIER_ACTION'       => $next_tier ? $this->action_label($next_tier['action']) : '',
+			'S_NEXT_TIER_INACTIVE'   => $next_tier && !$this->punishment_manager->is_tier_usable($next_tier),
+			'NEXT_TIER_REASON'       => $next_tier ? $this->decode($next_tier['reason_text']) : '',
 			'NEXT_TIER_THRESHOLD'    => $next_tier ? $next_tier['warning_threshold'] : '',
 			'S_IS_REPEATING'         => $is_repeating,
 			'S_HAS_ACTIVE'           => (bool) $active,
 			'ACTIVE_PUNISHMENT_ID'   => $active ? $active['punishment_id'] : 0,
 			'ACTIVE_OFFENSE_NUMBER'  => $active ? $active['offense_number'] : 0,
 			'S_CAN_STEP_DOWN'        => $active && $active['offense_number'] > 1,
-			'ACTIVE_ACTION'          => $active ? $active['action'] : '',
-			'ACTIVE_REASON'          => $active ? $active['reason_text'] : '',
+			'ACTIVE_ACTION'          => $active ? $this->action_label($active['action']) : '',
+			'ACTIVE_REASON'          => $active ? $this->decode($active['reason_text']) : '',
 			'ACTIVE_END_TIME'        => ($active && $active['end_time']) ? $this->user->format_date($active['end_time']) : '',
 			'USER_ID'                => $user_id,
 		]);
@@ -178,13 +184,31 @@ class main_listener implements EventSubscriberInterface
 		{
 			$this->template->assign_block_vars('punishment_history', [
 				'OFFENSE_NUMBER' => $p['offense_number'],
-				'ACTION'         => $p['action'],
-				'GROUP_ID'       => $p['group_id'],
-				'REASON'         => $p['reason_text'],
+				'ACTION'         => $this->action_label($p['action']),
+				'GROUP_NAME'     => ($p['action'] === 'group' && $p['group_name'] !== null) ? $this->decode($this->group_helper->get_name($p['group_name'])) : '',
+				'REASON'         => $this->decode($p['reason_text']),
 				'START_TIME'     => $p['start_time'] ? $this->user->format_date($p['start_time']) : '',
 				'END_TIME'       => $p['end_time'] ? $this->user->format_date($p['end_time']) : $this->user->lang('AUTOPUNISH_PERMANENT'),
 				'ACTIVE'         => $p['active'],
 			]);
 		}
+	}
+
+	/**
+	 * Text stored the way phpBB's request class returns it, HTML-escaped, for a
+	 * template that escapes it itself.
+	 */
+	private function decode($text)
+	{
+		return htmlspecialchars_decode((string) $text, ENT_COMPAT);
+	}
+
+	/**
+	 * The translated name of a punishment action, which is stored as the
+	 * identifier "group" or "deactivate".
+	 */
+	private function action_label($action)
+	{
+		return $this->user->lang($action === 'deactivate' ? 'AUTOPUNISH_ACTION_DEACTIVATE' : 'AUTOPUNISH_ACTION_GROUP');
 	}
 }

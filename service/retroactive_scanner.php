@@ -10,6 +10,9 @@ namespace biochaos\autopunish\service;
 
 class retroactive_scanner
 {
+	/** Candidates read and checked per batch. */
+	const BATCH_SIZE = 500;
+
 	/** @var \phpbb\db\driver\driver_interface */
 	private $db;
 
@@ -88,32 +91,48 @@ class retroactive_scanner
 			)';
 		}
 
-		$result = $this->db->sql_query($sql);
-		$users  = [];
-		while ($row = $this->db->sql_fetchrow($result))
-		{
-			$users[] = $row;
-		}
-		$this->db->sql_freeresult($result);
-
+		// Candidates are read in bounded batches, keyed on user id, and each
+		// batch's counters are fetched in one go. Only users who pass those
+		// checks reach handle_warning(), which re-checks and applies.
 		$punished = 0;
-		foreach ($users as $user)
+		$last_id  = 0;
+		do
 		{
-			$offense_number = $this->punishment_manager->get_next_offense_number($user['user_id']);
-			$tier           = $this->tier_manager->get_tier_for_offense($offense_number);
-
-			if (!$tier || $user['user_warnings'] < $tier['warning_threshold'])
+			$result = $this->db->sql_query_limit($sql . ' AND u.user_id > ' . (int) $last_id . ' ORDER BY u.user_id ASC', self::BATCH_SIZE);
+			$users  = [];
+			while ($row = $this->db->sql_fetchrow($result))
 			{
-				continue;
+				$users[(int) $row['user_id']] = $row;
 			}
+			$this->db->sql_freeresult($result);
 
-			// handle_warning() has the final say — it also rejects users whose
-			// warnings have already been punished for — so only count what it did.
-			if ($this->punishment_manager->handle_warning($user))
+			if (empty($users))
 			{
-				$punished++;
+				break;
+			}
+			$last_id = max(array_keys($users));
+
+			$state = $this->punishment_manager->get_scan_state(array_keys($users));
+			foreach ($users as $user_id => $user)
+			{
+				if (!$state[$user_id]['has_unpunished_warning'])
+				{
+					continue;
+				}
+
+				$tier = tier_manager::pick_tier($tiers, $state[$user_id]['next_offense']);
+				if (!$tier || $user['user_warnings'] < $tier['warning_threshold'])
+				{
+					continue;
+				}
+
+				if ($this->punishment_manager->handle_warning($user))
+				{
+					$punished++;
+				}
 			}
 		}
+		while (count($users) === self::BATCH_SIZE);
 
 		$this->log->add('admin', ANONYMOUS, '', 'LOG_AUTOPUNISH_RETROACTIVE', false, [$punished]);
 	}

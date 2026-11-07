@@ -34,7 +34,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_RETROACTIVE'            => 'Run retroactive scan',
 	'AUTOPUNISH_RETROACTIVE_EXPLAIN'    => 'When checked and saved, a one-time scan will run to punish users who already meet the threshold. This checkbox resets automatically after the scan.',
 	'ACP_AUTOPUNISH_SETTINGS_SAVED'     => 'Settings saved.',
-	'AUTOPUNISH_REQUIRES_PHPBB_330'     => 'AutoPunish requires phpBB 3.3.0 or later.',
+	'AUTOPUNISH_REQUIRES_PHPBB_331'     => 'AutoPunish requires phpBB 3.3.1 or later.',
 
 	// Notifications section
 	'AUTOPUNISH_NOTIFICATIONS'          => 'Notifications',
@@ -47,7 +47,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_SENDER_REQUIRED'          => 'A sender username is required when PM or email notifications are enabled.',
 	'AUTOPUNISH_SENDER_MISSING_WARNING'   => 'Warning: the configured sender account no longer exists. Private message notifications are currently not being sent. Choose a new sender to resume them.',
 	'AUTOPUNISH_NOTIFY_SUBJECT'         => 'PM/Email subject line',
-	'AUTOPUNISH_NOTIFY_SUBJECT_EXPLAIN' => 'Leave blank to use the tier\'s notification text as the subject.',
+	'AUTOPUNISH_NOTIFY_SUBJECT_EXPLAIN' => 'Leave blank to use the notification title as the subject.',
 	'AUTOPUNISH_NOTIFY_FOOTER'                  => 'PM/Email footer text',
 	'AUTOPUNISH_NOTIFY_EXPIRY_SUBJECT'          => 'Expiry PM/Email subject line',
 	'AUTOPUNISH_NOTIFY_EXPIRY_SUBJECT_EXPLAIN'  => 'Leave blank to use the expiry notification title as the subject.',
@@ -75,6 +75,9 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_REMOVE_CONFIRM'         => 'Remove this tier?',
 	'AUTOPUNISH_ADD_TIER'               => 'Add tier',
 	'ACP_AUTOPUNISH_TIERS_SAVED'        => 'Tiers saved.',
+	'AUTOPUNISH_NOTIFICATION_TEXT_EXPLAIN' => 'Leave blank to send the default text, in each user\'s own language.',
+	'AUTOPUNISH_TIER_GROUP_REQUIRED' => 'Tier %d adds users to a group, but no existing group is selected. Choose a group, or change the tier\'s action.',
+	'AUTOPUNISH_TIERS_INACTIVE' => 'These tiers have no group selected and are inactive: %s. Nobody is punished at an inactive tier until a group is chosen for it.',
 
 	// User management page
 	'AUTOPUNISH_STATUS_SUMMARY'         => 'AutoPunish Status',
@@ -86,6 +89,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_CURRENT_PUNISHMENT'     => 'Current active punishment',
 	'AUTOPUNISH_THRESHOLD'              => 'triggers at',
 	'AUTOPUNISH_REPEATING'              => 'repeating last tier',
+	'AUTOPUNISH_TIER_INACTIVE' => 'inactive — no group selected',
 	'AUTOPUNISH_NO_TIERS'               => 'No tiers configured',
 	'AUTOPUNISH_OFFENSE'                => 'Offense',
 	'AUTOPUNISH_EXPIRES'                => 'Expires',
@@ -135,6 +139,8 @@ $lang = array_merge($lang, [
 	'LOG_AUTOPUNISH_ESCALATED'    => '<strong>AutoPunish:</strong> user &quot;%1$s&quot; punishment escalated — offense #%2$d → #%3$d',
 	'LOG_AUTOPUNISH_DRY_RUN'      => '<strong>AutoPunish [DRY RUN]:</strong> user &quot;%1$s&quot; would be punished — offense #%2$d, action: %3$s',
 	'LOG_AUTOPUNISH_DRY_RUN_RESTART' => '<strong>AutoPunish [DRY RUN]:</strong> user &quot;%1$s&quot; would have their punishment timer restarted — offense #%2$d',
+	'LOG_AUTOPUNISH_TIER_INACTIVE' => '<strong>AutoPunish:</strong> user &quot;%1$s&quot; not punished — the tier for offense #%2$d has no valid group selected',
+	'LOG_AUTOPUNISH_GROUP_FAILED' => '<strong>AutoPunish:</strong> user &quot;%1$s&quot; not punished — they could not be added to group ID %2$d (%3$s)',
 	'LOG_AUTOPUNISH_RETROACTIVE'    => '<strong>AutoPunish:</strong> Retroactive scan completed — %1$d users punished',
 	'LOG_AUTOPUNISH_SENDER_MISSING' => '<strong>AutoPunish:</strong> Private message notification skipped — sender user ID %1$d no longer exists. Update the sender in AutoPunish settings.',
 ]);

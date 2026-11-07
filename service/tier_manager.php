@@ -47,14 +47,24 @@ class tier_manager
 	 */
 	public function get_tier_for_offense($offense_number)
 	{
-		$tiers = $this->get_all_tiers();
+		return self::pick_tier($this->get_all_tiers(), $offense_number);
+	}
 
+	/**
+	 * The tier for an offense number from an already loaded tier list, for
+	 * callers that look up many offenses against the same tiers.
+	 *
+	 * @param array $tiers As returned by get_all_tiers()
+	 * @return array|false
+	 */
+	public static function pick_tier(array $tiers, $offense_number)
+	{
 		if (empty($tiers))
 		{
 			return false;
 		}
 
-		$index = min($offense_number, count($tiers)) - 1;
+		$index = max(1, min((int) $offense_number, count($tiers))) - 1;
 		return $tiers[$index];
 	}
 

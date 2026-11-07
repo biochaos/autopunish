@@ -23,7 +23,7 @@ A phpBB extension that automatically punishes users when they accumulate warning
 
 ## Requirements
 
-- phpBB 3.3.0 or later
+- phpBB 3.3.1 or later
 - PHP 7.1.3 or later
 
 ## Installation
@@ -32,7 +32,7 @@ A phpBB extension that automatically punishes users when they accumulate warning
 2. Extract and copy the `biochaos/autopunish/` directory into your board's `ext/` directory, so the path is `ext/biochaos/autopunish/`.
 3. In the ACP, go to **Customise → Manage extensions** and enable **AutoPunish**.
 
-Enabling installs four example tiers, written in the administrator's language: a 7-day, a 30-day and a 180-day group restriction at 3 warnings each, then account deactivation at 1 warning. They are only a starting point and have no group set, so review them on the Tiers page — in particular, choose the group for each "add to group" tier — before turning AutoPunish on.
+Enabling installs four example tiers: a 7-day, a 30-day and a 180-day group restriction at 3 warnings each, then account deactivation at 1 warning. Their reasons are written in the administrator's language. Their notification texts are left empty, so each user gets the built-in text in their own language. The three group tiers have no group yet, which makes them **inactive**: nobody is punished at them until you choose a group for each on the Tiers page. Review the tiers before turning AutoPunish on.
 
 ## Updating
 
@@ -49,8 +49,9 @@ AutoPunish acts at the moment a moderator issues a warning — on a post or dire
 - The warning count is phpBB's own. If your board expires warnings (**ACP → General → Board settings → Warnings → Warning duration**), expired warnings no longer count towards a threshold.
 - A user is never punished twice for the same warnings. phpBB keeps the warning count on the account after a punishment ends, so AutoPunish records which warning triggered each punishment and requires a newer one before it will punish again.
 - Users in an exempt group are skipped entirely.
+- A group tier whose group is not set, or no longer exists, is **inactive**. A user who reaches it is not punished, and the skip is written to the admin log. An active punishment is not ended to make way for an inactive tier.
 
-When a punishment's time is up, the expiry cron task ends it: the user is removed from the punishment group and notified. Like all phpBB cron tasks, it runs on page views, so on a quiet board an expiry can lag behind the exact end time until the next visitor arrives.
+When a punishment's time is up, the expiry cron task ends it: the user is removed from the punishment group and notified. Ending a punishment, whether on expiry or early, only undoes what the punishment itself did. A user who was already in the group before the punishment stays in it, and an account that was already deactivated stays deactivated. Like all phpBB cron tasks, it runs on page views, so on a quiet board an expiry can lag behind the exact end time until the next visitor arrives.
 
 **Deactivate account** is always permanent. The tiers page does not offer a duration for it; the account stays deactivated until an administrator ends the punishment early from the Manage Users tab, which reactivates it.
 
@@ -86,10 +87,12 @@ Each row defines one punishment tier. The row position is the offense number (1s
 |---|---|
 | Warning threshold (≥) | Minimum active warning count that triggers this tier. |
 | Action | Add to group or deactivate the account. |
-| Group | The group to add the user to (only for the "add to group" action). Use a group that AutoPunish alone manages — if another extension also controls its membership, it can re-add users after AutoPunish removes them on expiry. |
+| Group | The group to add the user to (only for the "add to group" action, and required for it: the page will not save a group tier without one). Use a group that AutoPunish alone manages — if another extension also controls its membership, it can re-add users after AutoPunish removes them on expiry. |
 | Duration | Length of the punishment in days, weeks, or months (a month is 30 days). Set to 0 for permanent. Not used by "deactivate account", which is always permanent. |
 | Reason | Internal note visible to administrators in the log. |
-| Notification text | Body text sent to the user via PM/email for this tier. Supports `{USERNAME}`, `{DURATION}`, `{REASON}`, `{OFFENSE_NUMBER}`. |
+| Notification text | Text sent to the user for this tier, in the bell notification and as the PM/email body. Supports `{USERNAME}`, `{DURATION}`, `{REASON}`, `{OFFENSE_NUMBER}`. Leave it blank to send the built-in text in each user's own language. |
+
+A tier whose group is not set, or has since been deleted, is listed at the top of the page as inactive until a group is chosen.
 
 ### Notifications
 
@@ -97,9 +100,9 @@ A user can be told about three events: a punishment being **applied**, **expirin
 
 | Channel | Notes |
 |---|---|
-| Bell (forum notification) | Shown in the user's notification list on the board. |
+| Bell (forum notification) | Shown in the user's notification list on the board. Users can turn each of the three off in their UCP notification options. |
 | Private message | Sent from the **sender** account you choose on the Settings page. |
-| Email | Sent from the board's own email address; needs board email enabled. |
+| Email | Sent from the board's own email address as plain text, with any BBCode removed; needs board email enabled. |
 
 A sender account must be chosen whenever PM or email notifications are on. If that account is later deleted, AutoPunish skips the PMs, logs each one it skipped, and shows a warning on the Settings page until a new sender is chosen.
 
@@ -111,7 +114,7 @@ What each message says:
 | Expired | *Expiry notification text* | *Expiry PM/Email subject line* |
 | Ended early | *Commutation notification text* | *Early end PM/Email subject line* |
 
-Any field left blank falls back to a built-in default text in the recipient's language (for example "Your punishment has expired."). The *PM/Email footer text* is appended to every PM and email. All of these support the four placeholders, and BBCode is allowed in PM and email texts. PMs and emails are written in the recipient's own board language, including the wording of `{DURATION}`.
+Any field left blank falls back to a built-in default text in the recipient's language (for example "Your punishment has expired."). The *PM/Email footer text* is appended to every PM and email. All of these support the four placeholders, and BBCode is allowed in PM and email texts. Every notification is written in the recipient's own board language, including the wording of `{DURATION}`: PMs and emails when they are sent, bell notifications when they are shown.
 
 ### Managing individual users
 
@@ -125,10 +128,10 @@ AutoPunish adds an **AutoPunish** tab to the ACP **Manage Users** page (**Users 
 | Total punishments | How many punishments the user has received in total. |
 | Commuted offenses | How many offenses have been manually forgiven. |
 | Effective offense count | Total minus commuted — determines which tier applies next. |
-| Next offense would be | The tier that would fire on the next warning, including the threshold it activates at. Marked *repeating last tier* when the user is beyond the last configured tier. |
+| Next offense would be | The tier that would fire on the next warning, including the threshold it activates at. Marked *repeating last tier* when the user is beyond the last configured tier, and *inactive* when it is a group tier without a valid group. |
 | Current active punishment | The ongoing punishment's offense number, action, reason, and expiry date (or *Permanent*). Only shown when a punishment is currently active. |
 
-**End punishment early** — available when a punishment is active. Removes the punishment immediately — taking the user out of the punishment group, or reactivating a deactivated account — and notifies the user. The offense remains on the record. An optional *step-down* checkbox simultaneously applies the previous tier as a new, lighter punishment.
+**End punishment early** — available when a punishment is active. Removes the punishment immediately — taking the user out of the punishment group, or reactivating a deactivated account, unless that membership or deactivation was already there before the punishment — and notifies the user. The offense remains on the record. An optional *step-down* checkbox simultaneously applies the previous tier as a new, lighter punishment.
 
 **Commute offenses** — reduces the user's effective offense counter by a chosen amount. The next punishment will use a correspondingly lower tier. Does not affect any currently active punishment.
 
@@ -152,9 +155,37 @@ The group also needs some way into the ACP and the Manage Users page — in prac
 
 ## Admin log
 
-Everything AutoPunish does is written to the admin log (**Maintenance → Admin log**): punishments applied, expired, restarted, escalated and ended early, commutations, dry-run results, retroactive scan totals, and PMs skipped because the sender account is missing. Actions taken from the Manage Users tab are logged under the name of the person who took them.
+Everything AutoPunish does is written to the admin log (**Maintenance → Admin log**): punishments applied, expired, restarted, escalated and ended early, commutations, dry-run results, retroactive scan totals, users not punished because their tier is inactive or the group could not be joined, and PMs skipped because the sender account is missing. Actions taken from the Manage Users tab are logged under the name of the person who took them.
 
 ## Changelog
+
+### 1.2.0 — 2026-11-07
+
+**Fixed**
+
+- **Disabling the extension broke the board for anyone with an AutoPunish notification.** The three notification types stayed switched on after the extension was disabled, so phpBB went on loading those members' notifications and failed to find the code behind them. Every page they opened showed a "Whoops" error, and *Delete data* did not clear it. The types are now switched off when the extension is disabled and back on when it is enabled, and *Delete data* removes them along with their notifications.
+- **Ending a punishment could remove a membership AutoPunish had not added.** A user who was already in a tier's group was "added" again, and when the punishment ended they were taken out of the group they had been in all along. Each punishment now records whether it made the change itself, and ending it only undoes that change. The same applies to deactivation: an account that was already deactivated stays deactivated when the punishment ends.
+- **A group tier with no group, or a deleted one, still "punished" users.** A punishment was recorded and the user notified, but nothing happened to the account. A group tier now needs a group that exists. The Tiers page refuses to save one without it, and keeps what you typed so you can fix it. A stored tier without a valid group, such as the default tiers before you choose their groups, is **inactive**: nobody is punished at it, the skip goes to the admin log, and the Tiers page and the Manage Users tab both show which tiers are inactive. An active punishment is no longer ended to make way for an inactive tier.
+- **Each save of the Tiers page escaped the text again.** A reason or notification text containing `&`, `"`, `<` or `>` gained another layer of HTML escaping every time the page was saved, so `Q&A` became `Q&amp;A`, then `Q&amp;amp;A`. Text now stays exactly as it was typed. Text already stored with extra escaping keeps it, and needs correcting by hand once.
+- **Bell notifications from the system cron showed raw language keys.** An expiry run by `bin/phpbbcli.php cron:run` produced text like "Your AUTOPUNISH_DURATION_PERMANENT punishment has expired", because the command line does not load the extension's language file. Bell text is now worded when it is shown, in the reader's own language, as PMs and emails already were. Notifications created by earlier versions still show as they were.
+- **Bell notifications ignored the user's notification settings.** Turning off an AutoPunish notification in the UCP had no effect. Those settings are now respected. The bell is the only method offered for these notifications, since PMs and emails are AutoPunish's own channels, controlled on its Settings page.
+- **Emails contained HTML entities and BBCode.** The email body was the PM text as stored, so a recipient could see `&quot;` and `[b]...[/b]`. Emails are now plain text, with BBCode removed and entities decoded.
+- **A rejected Settings save still changed some settings.** The sender was checked after seven settings had already been written, so turning PM notifications on with no sender was refused but left PMs switched on with nothing to send them. The sender is now checked first, and a refused save changes nothing.
+- **The Manage Users tab showed internal identifiers.** The action column showed `group` and `deactivate`, the group column showed a number, and built-in groups appeared as `REGISTERED` and the like, both there and in the group lists on the Settings and Tiers pages. All of them now show their translated names.
+
+**Changed**
+
+- **phpBB 3.3.1 or later is required.** The Manage Users tab builds its return links from information that phpBB only passes to extensions from 3.3.1 on.
+- The default tiers install with empty notification texts, so each recipient gets the built-in default in their own language. Text filled in at install time was in the administrator's language and replaced that default for every recipient. Boards that already have the default tiers keep their texts.
+- The retroactive scan reads users in batches of 500, with three queries per batch for their punishment counts and warnings, instead of several queries per user.
+- The Hebrew translation of the sender field described a numeric user ID that could be left as 0. It now describes the username the field actually takes. The subject-line help text in all five languages said a blank subject used the tier's notification text, when it uses the notification title.
+- The one-line conditionals the validation notes pointed out are written out with braces, as the phpBB coding guidelines ask.
+
+**Upgrading**
+
+This release includes a database change; see [Updating](#updating). Punishments recorded before the update are treated as having made their own change, as before.
+
+After updating, open the Tiers page: any tier listed as inactive needs a group before it will punish anyone.
 
 ### 1.1.1 — 2026-10-15
 
@@ -245,7 +276,7 @@ Nothing changes for punishments triggered by a moderator issuing a warning — t
 2. Disable **AutoPunish**, then click **Delete data**.
 3. Remove the `ext/biochaos/autopunish/` directory from your board.
 
-*Delete data* removes AutoPunish's tables, settings and permission, but does not undo punishments that are still active: users stay in their punishment groups and deactivated accounts stay deactivated. End any active punishments you want lifted from the Manage Users tab before deleting the data.
+Disabling AutoPunish switches its notifications off, so members who have one see nothing from it while it is disabled. *Delete data* removes AutoPunish's tables, settings, permission and notifications, but does not undo punishments that are still active: users stay in their punishment groups and deactivated accounts stay deactivated. End any active punishments you want lifted from the Manage Users tab before deleting the data.
 
 ## License
 

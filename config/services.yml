@@ -41,6 +41,7 @@ services:
             - '@template'
             - '@user'
             - '@request'
+            - '@group_helper'
         tags:
             - { name: event.listener }
 
