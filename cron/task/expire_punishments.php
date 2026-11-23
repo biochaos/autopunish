@@ -32,8 +32,13 @@ class expire_punishments extends \phpbb\cron\task\base
 
 	public function run()
 	{
-		$this->punishment_manager->expire_punishments();
-		$this->config->set('autopunish_cron_last_run', time(), false);
+		// When a batch limit left some punishments for later, the run is not
+		// recorded, so the next cron check carries on instead of waiting out
+		// the interval.
+		if ($this->punishment_manager->expire_punishments())
+		{
+			$this->config->set('autopunish_cron_last_run', time(), false);
+		}
 	}
 
 	public function is_runnable()

@@ -34,6 +34,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_RETROACTIVE'            => 'Lancer une analyse rétroactive',
 	'AUTOPUNISH_RETROACTIVE_EXPLAIN'    => 'Lorsque coché et sauvegardé, une analyse unique sera effectuée pour sanctionner les utilisateurs qui atteignent déjà le seuil. Cette case se réinitialise automatiquement après l\'analyse.',
 	'ACP_AUTOPUNISH_SETTINGS_SAVED'     => 'Paramètres sauvegardés.',
+	'ACP_AUTOPUNISH_SCAN_PARTIAL' => 'L\'analyse rétroactive s\'est arrêtée pour respecter la limite de temps. Cochez-la et enregistrez à nouveau pour poursuivre.',
 	'AUTOPUNISH_REQUIRES_PHPBB_332'     => 'AutoPunish nécessite phpBB 3.3.2 ou supérieur.',
 
 	// Notifications section
@@ -55,7 +56,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_NOTIFY_COMMUTE_SUBJECT'         => 'Objet du MP/e-mail de fin anticipée',
 	'AUTOPUNISH_NOTIFY_COMMUTE_SUBJECT_EXPLAIN' => 'Laisser vide pour utiliser le titre de la notification de fin anticipée comme objet.',
 	'AUTOPUNISH_NOTIFY_COMMUTE_TEXT'            => 'Texte de notification de remise de peine',
-	'AUTOPUNISH_PLACEHOLDERS_EXPLAIN'   => 'Variables disponibles : {USERNAME}, {DURATION}, {REASON}, {OFFENSE_NUMBER}. Le BBCode est pris en charge dans les textes MP/e-mail.',
+	'AUTOPUNISH_PLACEHOLDERS_EXPLAIN'   => 'Variables disponibles : {USERNAME}, {DURATION}, {REASON}, {OFFENSE_NUMBER}. Le BBCode est pris en charge dans les textes MP, et supprimé dans les e-mails.',
 
 	// Tiers page
 	'AUTOPUNISH_TIERS_EXPLAIN'          => 'Chaque ligne est un niveau de sanction. Position de la ligne = numéro d\'infraction. Le dernier niveau est utilisé pour toutes les infractions au-delà du nombre configuré.',

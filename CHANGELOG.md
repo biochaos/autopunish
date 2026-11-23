@@ -11,12 +11,17 @@
 - **A text that was too long ended a save with an SQL error.** The notification texts on the Settings page are kept in the config table, whose values hold 255 characters, and a tier's reason has the same limit, counted after escaping and encoding (an `&` takes five). A longer one now gets a message naming the field. The Settings page also saved its fields one by one, so a failure part way left some of them changed: it now checks everything first and writes all or nothing. A warning mode that is not one of the three is ignored, and the check interval cannot go below one minute.
 - **The admin log showed identifiers.** A punishment was logged as "action: group, group: 8". The log now says "Add to group" or "Deactivate account" and names the group (built-in groups by their translated names), in the language of whoever was acting. Entries written before still read as they did.
 - **A deleted user's punishments stayed behind.** Their records, and their commuted-offense count, are now removed with the account, and the update removes the ones already left by earlier deletions.
+- **Expiring a punishment could leave its group membership behind.** The punishment was marked as over and then its group membership removed, as two separate steps, so a failure between them left the user in the group with nothing to ever remove them. They are now one step.
+- **A mass expiry could run out of time.** After a retroactive scan the punishments all fall due together, and each can mean a PM and an email. The expiry task now works in batches of 100 for up to 20 seconds, and carries on at the next cron check if any are left, instead of waiting out the interval. The retroactive scan has the same 20-second budget; when it stops early the Settings page says so, and running it again continues where it left off.
 
 ### Changed
 
 - Founders and bots are never punished, as the retroactive scan already assumed. phpBB does not deactivate them, so a deactivation tier would have recorded a punishment and sent the notice without changing the account. This only comes up when someone warns a founder.
 - **phpBB 3.3.2 or later is required.** The installation step that grants the new permission to the stock administrator roles uses `permission.role_exists`, which phpBB's migration tools only have from 3.3.2.
 - **A migration of a released version is no longer changed.** 1.2.0 edited `install_default_tiers`, which had shipped in 1.0.0, so a new board was seeded differently from a board that had installed 1.0.0. That file is back exactly as 1.0.0 shipped it, and a new migration, `localize_default_tiers`, makes the change instead: a default tier that still holds its original English notification text gets an empty one, so recipients get the built-in text in their own language, and one that still holds its original reason gets the reason in the administrator's language. A tier you edited by hand is left alone. A new board ends up with the same four tiers as before.
+- The Tiers page no longer offers Guests, Registered users, Bots, Global moderators or Administrators as a punishment group: the first three mean nothing, and the last two would be a promotion. Newly registered users is still offered. A tier that already names one of them is treated as inactive.
+- A PM or email is worded in the recipient's language, then the board's default language, then English, which is the order phpBB itself uses. It used to skip the board default.
+- The help text under the notification texts said BBCode works in emails; it is removed from them.
 
 ### Upgrading
 

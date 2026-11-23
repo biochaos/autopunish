@@ -151,11 +151,17 @@ class main_module
 			{
 				/** @var \biochaos\autopunish\service\retroactive_scanner $scanner */
 				$scanner = $phpbb_container->get('biochaos.autopunish.retroactive_scanner');
-				$scanner->run();
+				$scan_complete = $scanner->run();
 				$config->set('autopunish_retroactive', 0);
 			}
 
-			trigger_error($user->lang('ACP_AUTOPUNISH_SETTINGS_SAVED') . adm_back_link($this->u_action));
+			$message = $user->lang('ACP_AUTOPUNISH_SETTINGS_SAVED');
+			if (isset($scan_complete) && !$scan_complete)
+			{
+				$message .= '<br />' . $user->lang('ACP_AUTOPUNISH_SCAN_PARTIAL');
+			}
+
+			trigger_error($message . adm_back_link($this->u_action));
 		}
 
 		// Look up the stored sender's username for display
@@ -216,7 +222,8 @@ class main_module
 	{
 		add_form_key('acp_autopunish_tiers');
 
-		$groups    = $this->get_all_groups($db);
+		// Not the built-in groups that make no sense as a punishment.
+		$groups    = $this->get_all_groups($db, true);
 		$group_ids = array_map('intval', array_column($groups, 'group_id'));
 		$errors    = [];
 		$tiers     = null;
@@ -357,8 +364,10 @@ class main_module
 	 * Every group, with the name to display: phpBB's built-in groups are stored
 	 * under identifiers such as REGISTERED, which the group helper translates.
 	 * Sorted by that display name.
+	 *
+	 * @param bool $punishment_groups_only Leave out the built-in groups that make no sense as a punishment
 	 */
-	private function get_all_groups($db)
+	private function get_all_groups($db, $punishment_groups_only = false)
 	{
 		global $phpbb_container;
 
@@ -366,7 +375,8 @@ class main_module
 		$group_helper = $phpbb_container->get('group_helper');
 
 		$groups = [];
-		$sql    = 'SELECT group_id, group_name FROM ' . GROUPS_TABLE;
+		$sql    = 'SELECT group_id, group_name FROM ' . GROUPS_TABLE
+			. ($punishment_groups_only ? ' WHERE ' . $db->sql_in_set('group_name', tier_manager::UNSUITABLE_GROUPS, true) : '');
 		$result = $db->sql_query($sql);
 		while ($row = $db->sql_fetchrow($result))
 		{

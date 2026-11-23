@@ -10,6 +10,12 @@ namespace biochaos\autopunish\service;
 
 class punishment_manager
 {
+	/** Expired punishments handled per batch. */
+	const EXPIRY_BATCH_SIZE = 100;
+
+	/** Seconds the expiry task works for before leaving the rest to its next run. */
+	const TIME_BUDGET = 20;
+
 	/** @var \phpbb\db\driver\driver_interface */
 	private $db;
 
@@ -151,32 +157,48 @@ class punishment_manager
 	/**
 	 * Expires all punishments whose end_time has passed.
 	 * Called by the cron task.
+	 *
+	 * They are taken in batches, within a time budget, because after a mass
+	 * punishment, such as a retroactive scan, they all fall due together, and
+	 * each one can mean a PM and an email. What is left over is picked up by
+	 * the next run.
+	 *
+	 * @param int $time_budget Seconds after which no further batch is started
+	 * @return bool True when nothing that was due is left
 	 */
-	public function expire_punishments()
+	public function expire_punishments($time_budget = self::TIME_BUDGET)
 	{
 		if (!$this->config['autopunish_enabled'])
 		{
-			return;
+			return true;
 		}
 
-		$now = time();
-		$sql = 'SELECT p.*, u.username
-				FROM ' . $this->punishments_table . ' p
-				JOIN ' . USERS_TABLE . ' u ON u.user_id = p.user_id
-				WHERE p.active = 1 AND p.end_time > 0 AND p.end_time <= ' . $now;
+		$deadline = time() + $time_budget;
 
-		$result = $this->db->sql_query($sql);
-		$rows   = [];
-		while ($row = $this->db->sql_fetchrow($result))
+		do
 		{
-			$rows[] = $row;
-		}
-		$this->db->sql_freeresult($result);
+			$sql = 'SELECT p.*, u.username
+					FROM ' . $this->punishments_table . ' p
+					JOIN ' . USERS_TABLE . ' u ON u.user_id = p.user_id
+					WHERE p.active = 1 AND p.end_time > 0 AND p.end_time <= ' . time() . '
+					ORDER BY p.end_time ASC';
 
-		foreach ($rows as $punishment)
-		{
-			$this->expire_single_punishment($punishment);
+			$result = $this->db->sql_query_limit($sql, self::EXPIRY_BATCH_SIZE);
+			$rows   = [];
+			while ($row = $this->db->sql_fetchrow($result))
+			{
+				$rows[] = $row;
+			}
+			$this->db->sql_freeresult($result);
+
+			foreach ($rows as $punishment)
+			{
+				$this->expire_single_punishment($punishment);
+			}
 		}
+		while (count($rows) === self::EXPIRY_BATCH_SIZE && time() < $deadline);
+
+		return count($rows) < self::EXPIRY_BATCH_SIZE;
 	}
 
 	/**
@@ -190,14 +212,10 @@ class punishment_manager
 			return false;
 		}
 
-		// Conditional, so that a cron run or a second administrator ending the
-		// same punishment at the same moment does not undo it twice.
-		$this->db->sql_query('UPDATE ' . $this->punishments_table . ' SET active = 0 WHERE punishment_id = ' . (int) $punishment_id . ' AND active = 1');
-		if (!$this->db->sql_affectedrows())
+		if (!$this->close_punishment($punishment))
 		{
 			return false;
 		}
-		$this->undo_punishment($punishment);
 
 		// Fetch username for logging
 		$sql    = 'SELECT username FROM ' . USERS_TABLE . ' WHERE user_id = ' . (int) $punishment['user_id'];
@@ -318,7 +336,11 @@ class punishment_manager
 			return true;
 		}
 
-		return $this->group_exists((int) $tier['group_id']);
+		// A tier saved before the Tiers page stopped offering such groups can
+		// still name one: adding someone to Administrators is no punishment.
+		$group = $this->get_group_row($tier['group_id']);
+
+		return $group !== false && !in_array($group['group_name'], tier_manager::UNSUITABLE_GROUPS, true);
 	}
 
 	/**
@@ -656,13 +678,10 @@ class punishment_manager
 
 	private function expire_single_punishment(array $punishment)
 	{
-		$this->db->sql_query('UPDATE ' . $this->punishments_table . ' SET active = 0 WHERE punishment_id = ' . (int) $punishment['punishment_id'] . ' AND active = 1');
-		if (!$this->db->sql_affectedrows())
+		if (!$this->close_punishment($punishment))
 		{
-			return; // Already expired by another process
+			return; // Already ended by another process
 		}
-
-		$this->undo_punishment($punishment);
 
 		$this->log->add('admin', \ANONYMOUS, '', 'LOG_AUTOPUNISH_EXPIRED', false, [$punishment['username'], $punishment['offense_number']]);
 
@@ -681,8 +700,36 @@ class punishment_manager
 
 	private function end_active_punishment(array $active)
 	{
-		$this->db->sql_query('UPDATE ' . $this->punishments_table . ' SET active = 0 WHERE punishment_id = ' . (int) $active['punishment_id']);
-		$this->undo_punishment($active);
+		$this->close_punishment($active);
+	}
+
+	/**
+	 * Marks a punishment as over and reverses what it did, as one step. Were
+	 * they separate, a failure between them would leave a punishment recorded
+	 * as ended whose group membership was never removed, and nothing would
+	 * ever come back to it.
+	 *
+	 * The update is conditional, so that a cron run and an administrator, or
+	 * two administrators, ending the same punishment at the same moment do not
+	 * undo it twice.
+	 *
+	 * @return bool False when the punishment was already over
+	 */
+	private function close_punishment(array $punishment)
+	{
+		$this->db->sql_transaction('begin');
+
+		$this->db->sql_query('UPDATE ' . $this->punishments_table . ' SET active = 0 WHERE punishment_id = ' . (int) $punishment['punishment_id'] . ' AND active = 1');
+		$closed = (bool) $this->db->sql_affectedrows();
+
+		if ($closed)
+		{
+			$this->undo_punishment($punishment);
+		}
+
+		$this->db->sql_transaction('commit');
+
+		return $closed;
 	}
 
 	/**
@@ -966,8 +1013,17 @@ class punishment_manager
 	private function load_lang_array($lang_code)
 	{
 		$lang = [];
-		foreach ([$lang_code, 'en'] as $try_lang)
+
+		// The recipient's language, then the board's default, then English: the
+		// order phpBB's own language service falls back in.
+		foreach (array_unique([$lang_code, $this->config['default_lang'], 'en']) as $try_lang)
 		{
+			// The name becomes part of a path.
+			if (!preg_match('/^[a-z0-9_-]+$/i', (string) $try_lang))
+			{
+				continue;
+			}
+
 			$file = $this->phpbb_root_path . 'ext/biochaos/autopunish/language/' . $try_lang . '/common.php';
 			if (file_exists($file))
 			{
@@ -1015,8 +1071,9 @@ class punishment_manager
 			return;
 		}
 
-		// Parse BBCode in message body
-		$bbcode_uid      = \substr(\str_replace('.', '', \uniqid('', true)), -8);
+		// Parse BBCode in message body. The uid and bitfield are filled in by the
+		// parser, which is the only thing that knows them.
+		$bbcode_uid      = '';
 		$bbcode_bitfield = '';
 		$bbcode_flags    = \OPTION_FLAG_BBCODE | \OPTION_FLAG_SMILIES | \OPTION_FLAG_LINKS;
 		\generate_text_for_storage($body, $bbcode_uid, $bbcode_bitfield, $bbcode_flags, true, true, true);

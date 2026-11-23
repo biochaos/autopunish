@@ -34,6 +34,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_RETROACTIVE'            => 'Executar análise retroativa',
 	'AUTOPUNISH_RETROACTIVE_EXPLAIN'    => 'Quando marcado e guardado, será executada uma análise única para punir utilizadores que já cumprem o limiar. Esta caixa é reiniciada automaticamente após a análise.',
 	'ACP_AUTOPUNISH_SETTINGS_SAVED'     => 'Configurações guardadas.',
+	'ACP_AUTOPUNISH_SCAN_PARTIAL' => 'A verificação retroativa parou para respeitar o limite de tempo. Marque-a e guarde novamente para continuar.',
 	'AUTOPUNISH_REQUIRES_PHPBB_332'     => 'AutoPunish requer phpBB 3.3.2 ou superior.',
 
 	// Notifications section
@@ -55,7 +56,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_NOTIFY_COMMUTE_SUBJECT'         => 'Assunto do MP/e-mail de encerramento antecipado',
 	'AUTOPUNISH_NOTIFY_COMMUTE_SUBJECT_EXPLAIN' => 'Deixar em branco para usar o título da notificação de encerramento antecipado como assunto.',
 	'AUTOPUNISH_NOTIFY_COMMUTE_TEXT'            => 'Texto de notificação de comutação',
-	'AUTOPUNISH_PLACEHOLDERS_EXPLAIN'   => 'Variáveis disponíveis: {USERNAME}, {DURATION}, {REASON}, {OFFENSE_NUMBER}. BBCode é suportado nos textos de MP/e-mail.',
+	'AUTOPUNISH_PLACEHOLDERS_EXPLAIN'   => 'Variáveis disponíveis: {USERNAME}, {DURATION}, {REASON}, {OFFENSE_NUMBER}. BBCode é suportado nos textos de MP, e é removido nos e-mails.',
 
 	// Tiers page
 	'AUTOPUNISH_TIERS_EXPLAIN'          => 'Cada linha é um nível de punição. Posição da linha = número de infração. O último nível é usado para todas as infrações além do número configurado.',

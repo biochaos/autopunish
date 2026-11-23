@@ -34,6 +34,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_RETROACTIVE'            => 'Run retroactive scan',
 	'AUTOPUNISH_RETROACTIVE_EXPLAIN'    => 'When checked and saved, a one-time scan will run to punish users who already meet the threshold. This checkbox resets automatically after the scan.',
 	'ACP_AUTOPUNISH_SETTINGS_SAVED'     => 'Settings saved.',
+	'ACP_AUTOPUNISH_SCAN_PARTIAL' => 'The retroactive scan stopped to stay within the time limit. Tick it and save again to carry on.',
 	'AUTOPUNISH_REQUIRES_PHPBB_332'     => 'AutoPunish requires phpBB 3.3.2 or later.',
 
 	// Notifications section
@@ -55,7 +56,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_NOTIFY_COMMUTE_SUBJECT'         => 'Early end PM/Email subject line',
 	'AUTOPUNISH_NOTIFY_COMMUTE_SUBJECT_EXPLAIN' => 'Leave blank to use the early end notification title as the subject.',
 	'AUTOPUNISH_NOTIFY_COMMUTE_TEXT'            => 'Commutation notification text',
-	'AUTOPUNISH_PLACEHOLDERS_EXPLAIN'   => 'Supported placeholders: {USERNAME}, {DURATION}, {REASON}, {OFFENSE_NUMBER}. BBCode is supported in PM/email texts.',
+	'AUTOPUNISH_PLACEHOLDERS_EXPLAIN'   => 'Supported placeholders: {USERNAME}, {DURATION}, {REASON}, {OFFENSE_NUMBER}. BBCode is supported in PM texts, and is removed from emails.',
 
 	// Tiers page
 	'AUTOPUNISH_TIERS_EXPLAIN'          => 'Each row is a punishment tier. Row position = offense number. The last tier is used for all offenses beyond the configured count.',

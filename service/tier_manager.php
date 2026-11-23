@@ -20,6 +20,14 @@ class tier_manager
 	/** The most characters a stored reason, or a text kept in the config table, can have. */
 	const MAX_TEXT_LENGTH = 255;
 
+	/**
+	 * Built-in groups a punishment must not add users to: everyone is already
+	 * registered, guests and bots are not people to punish, and administrators
+	 * and global moderators would be a promotion. Newly registered users stays,
+	 * as a plausible restricted group.
+	 */
+	const UNSUITABLE_GROUPS = ['GUESTS', 'REGISTERED', 'REGISTERED_COPPA', 'BOTS', 'GLOBAL_MODERATORS', 'ADMINISTRATORS'];
+
 	/** @var \phpbb\db\driver\driver_interface */
 	private $db;
 

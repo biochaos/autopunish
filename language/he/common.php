@@ -34,6 +34,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_RETROACTIVE'            => 'הרץ סריקה רטרואקטיבית',
 	'AUTOPUNISH_RETROACTIVE_EXPLAIN'    => 'כאשר מסומן ונשמר, תתבצע סריקה חד-פעמית שתעניש משתמשים שכבר עומדים בתנאי הסף. תיבת הסימון מתאפסת אוטומטית לאחר הסריקה.',
 	'ACP_AUTOPUNISH_SETTINGS_SAVED'     => 'ההגדרות נשמרו.',
+	'ACP_AUTOPUNISH_SCAN_PARTIAL' => 'הסריקה למפרע נעצרה כדי לא לחרוג ממגבלת הזמן. סמן אותה ושמור שוב כדי להמשיך.',
 	'AUTOPUNISH_REQUIRES_PHPBB_332'     => 'AutoPunish דורש phpBB 3.3.2 ומעלה.',
 
 	// Notifications section

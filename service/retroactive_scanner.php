@@ -13,6 +13,9 @@ class retroactive_scanner
 	/** Candidates read and checked per batch. */
 	const BATCH_SIZE = 500;
 
+	/** Seconds the scan works for before stopping, to stay inside the request's time limit. */
+	const TIME_BUDGET = 20;
+
 	/** @var \phpbb\db\driver\driver_interface */
 	private $db;
 
@@ -57,14 +60,24 @@ class retroactive_scanner
 	 * Runs the retroactive scan.
 	 * Finds all users with warnings >= tier 1 threshold who don't already
 	 * have an active punishment, applies the appropriate tier, then logs.
+	 *
+	 * It runs inside an administrator's request, and each punishment can mean
+	 * a PM and an email, so it stops after a time budget. Running it again
+	 * carries on: whoever was punished is no longer a candidate.
+	 *
+	 * @param int $time_budget Seconds after which the scan stops
+	 * @return bool True when every candidate was looked at
 	 */
-	public function run()
+	public function run($time_budget = self::TIME_BUDGET)
 	{
 		$tiers = $this->tier_manager->get_all_tiers();
 		if (empty($tiers))
 		{
-			return;
+			return true;
 		}
+
+		$deadline = time() + $time_budget;
+		$complete = true;
 
 		// Use the lowest threshold across all tiers as the minimum to query
 		$min_threshold = min(array_column($tiers, 'warning_threshold'));
@@ -98,6 +111,12 @@ class retroactive_scanner
 		$last_id  = 0;
 		do
 		{
+			if (time() >= $deadline)
+			{
+				$complete = false;
+				break;
+			}
+
 			$result = $this->db->sql_query_limit($sql . ' AND u.user_id > ' . (int) $last_id . ' ORDER BY u.user_id ASC', self::BATCH_SIZE);
 			$users  = [];
 			while ($row = $this->db->sql_fetchrow($result))
@@ -115,6 +134,12 @@ class retroactive_scanner
 			$state = $this->punishment_manager->get_scan_state(array_keys($users));
 			foreach ($users as $user_id => $user)
 			{
+				if (time() >= $deadline)
+				{
+					$complete = false;
+					break 2;
+				}
+
 				if (!$state[$user_id]['has_unpunished_warning'])
 				{
 					continue;
@@ -135,5 +160,7 @@ class retroactive_scanner
 		while (count($users) === self::BATCH_SIZE);
 
 		$this->log->add('admin', ANONYMOUS, '', 'LOG_AUTOPUNISH_RETROACTIVE', false, [$punished]);
+
+		return $complete;
 	}
 }
