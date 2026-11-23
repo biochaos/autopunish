@@ -34,7 +34,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_RETROACTIVE'            => 'הרץ סריקה רטרואקטיבית',
 	'AUTOPUNISH_RETROACTIVE_EXPLAIN'    => 'כאשר מסומן ונשמר, תתבצע סריקה חד-פעמית שתעניש משתמשים שכבר עומדים בתנאי הסף. תיבת הסימון מתאפסת אוטומטית לאחר הסריקה.',
 	'ACP_AUTOPUNISH_SETTINGS_SAVED'     => 'ההגדרות נשמרו.',
-	'AUTOPUNISH_REQUIRES_PHPBB_331'     => 'AutoPunish דורש phpBB 3.3.1 ומעלה.',
+	'AUTOPUNISH_REQUIRES_PHPBB_332'     => 'AutoPunish דורש phpBB 3.3.2 ומעלה.',
 
 	// Notifications section
 	'AUTOPUNISH_NOTIFICATIONS'          => 'התראות',
@@ -78,6 +78,8 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_NOTIFICATION_TEXT_EXPLAIN' => 'השאר ריק כדי לשלוח את טקסט ברירת המחדל, בשפה של כל משתמש.',
 	'AUTOPUNISH_TIER_GROUP_REQUIRED' => 'רמה %d מוסיפה משתמשים לקבוצה, אך לא נבחרה קבוצה קיימת. בחר קבוצה, או שנה את הפעולה של הרמה.',
 	'AUTOPUNISH_TIERS_INACTIVE' => 'לרמות אלה לא נבחרה קבוצה והן אינן פעילות: %s. אף משתמש לא ייענש ברמה לא פעילה עד שתיבחר לה קבוצה.',
+	'AUTOPUNISH_TEXT_TOO_LONG' => '"%1$s" ארוך מדי: ניתן לשמור לכל היותר %2$d תווים, כאשר תווים מיוחדים ואימוג\'ים נספרים כפי שהם מקודדים, והטקסט הזה דורש %3$d.',
+	'AUTOPUNISH_DURATION_TOO_LONG' => 'רמה %d: משך הזמן ארוך מדי. המשך הארוך ביותר הוא 50 שנים.',
 
 	// User management page
 	'AUTOPUNISH_STATUS_SUMMARY'         => 'סטטוס ענישה אוטומטית',

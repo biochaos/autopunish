@@ -18,13 +18,15 @@ class ext extends \phpbb\extension\base
 	];
 
 	/**
-	 * 3.3.1 is the first release whose core.acp_users_mode_add event passes
+	 * 3.3.2 is the first release whose migration tools include
+	 * permission.role_exists, which add_autopunish_permission uses, and it
+	 * includes 3.3.1, the first whose core.acp_users_mode_add event passes
 	 * u_action, which the Manage Users tab needs for its return links.
 	 */
 	public function is_enableable()
 	{
 		$config = $this->container->get('config');
-		if (phpbb_version_compare($config['version'], '3.3.1', '>='))
+		if (phpbb_version_compare($config['version'], '3.3.2', '>='))
 		{
 			return true;
 		}
@@ -32,7 +34,7 @@ class ext extends \phpbb\extension\base
 		// The extension's language file is not loaded while it is disabled.
 		$language = $this->container->get('language');
 		$language->add_lang('common', 'biochaos/autopunish');
-		return $language->lang('AUTOPUNISH_REQUIRES_PHPBB_331');
+		return $language->lang('AUTOPUNISH_REQUIRES_PHPBB_332');
 	}
 
 	/**

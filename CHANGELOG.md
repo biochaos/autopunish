@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.2.1 — 2026-11-23
+
+### Fixed
+
+- **The Manage Users form acted on whatever it was sent.** *End punishment early* took the punishment id and the offense number from the posted form, and checked neither against the member whose tab was open. A forged post could end another member's punishment, and with *step down* ticked it could apply any tier to any member: account deactivation for a member with no warnings, or for a member of an exempt group. A stale form did the same without any forging: after the cron expired a punishment, submitting the old form still answered "Punishment ended" and applied a new one. The form now only says which punishment the administrator was looking at. Everything else is read from that member's stored active punishment, and nothing is ended or applied when it no longer matches. Ending a punishment is also atomic now, so two administrators, or an administrator and the cron, cannot both end it, and the notification and the log entry are not repeated. A step-down no longer punishes a member of an exempt group.
+- **Saving the Tiers page with an emoji emptied the tiers.** On MySQL a reason or notification text containing an emoji, or any other character outside the Basic Multilingual Plane, ended the save with an SQL error, and because the old tiers were deleted before the new ones were inserted, nobody was punished until every tier was typed in again. Such characters are now stored as numeric references, the way phpBB stores titles, and shown again exactly as typed. The delete and the insert also run in one transaction, so a failed save leaves the saved tiers as they were. The texts on the Settings page are stored the same way, as phpBB's own board settings are.
+- **The expiry task ran on every cron check, not once per interval.** The time of its last run was kept as an ordinary config value, which phpBB serves from its cache, while the task wrote it without refreshing that cache. Every request after a run therefore read the time from before it, and the task counted as due again each time. It also took the single cron slot phpBB gives each request. The value is now flagged as one phpBB reads from the database each time.
+- **A tier could not last longer than about 194 days.** Its length was stored in a three-byte column that tops out at 16,777,215 seconds, so a tier set to seven months or a year ended the save with a raw SQL error. The column is wider, and the Tiers page now accepts up to 50 years and says so when a tier is longer.
+- **A text that was too long ended a save with an SQL error.** The notification texts on the Settings page are kept in the config table, whose values hold 255 characters, and a tier's reason has the same limit, counted after escaping and encoding (an `&` takes five). A longer one now gets a message naming the field. The Settings page also saved its fields one by one, so a failure part way left some of them changed: it now checks everything first and writes all or nothing. A warning mode that is not one of the three is ignored, and the check interval cannot go below one minute.
+- **The admin log showed identifiers.** A punishment was logged as "action: group, group: 8". The log now says "Add to group" or "Deactivate account" and names the group (built-in groups by their translated names), in the language of whoever was acting. Entries written before still read as they did.
+- **A deleted user's punishments stayed behind.** Their records, and their commuted-offense count, are now removed with the account, and the update removes the ones already left by earlier deletions.
+
+### Changed
+
+- Founders and bots are never punished, as the retroactive scan already assumed. phpBB does not deactivate them, so a deactivation tier would have recorded a punishment and sent the notice without changing the account. This only comes up when someone warns a founder.
+- **phpBB 3.3.2 or later is required.** The installation step that grants the new permission to the stock administrator roles uses `permission.role_exists`, which phpBB's migration tools only have from 3.3.2.
+- **A migration of a released version is no longer changed.** 1.2.0 edited `install_default_tiers`, which had shipped in 1.0.0, so a new board was seeded differently from a board that had installed 1.0.0. That file is back exactly as 1.0.0 shipped it, and a new migration, `localize_default_tiers`, makes the change instead: a default tier that still holds its original English notification text gets an empty one, so recipients get the built-in text in their own language, and one that still holds its original reason gets the reason in the administrator's language. A tier you edited by hand is left alone. A new board ends up with the same four tiers as before.
+
+### Upgrading
+
+This release includes migrations: they widen the tier duration column, flag the cron timestamp, and remove the records of users who no longer exist. Run `php bin/phpbbcli.php db:migrate`, or disable and re-enable the extension in the ACP (keeping its data), then purge the cache.
+
 ## 1.2.0 — 2026-11-07
 
 ### Fixed

@@ -34,7 +34,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_RETROACTIVE'            => 'Executar análise retroativa',
 	'AUTOPUNISH_RETROACTIVE_EXPLAIN'    => 'Quando marcado e guardado, será executada uma análise única para punir utilizadores que já cumprem o limiar. Esta caixa é reiniciada automaticamente após a análise.',
 	'ACP_AUTOPUNISH_SETTINGS_SAVED'     => 'Configurações guardadas.',
-	'AUTOPUNISH_REQUIRES_PHPBB_331'     => 'AutoPunish requer phpBB 3.3.1 ou superior.',
+	'AUTOPUNISH_REQUIRES_PHPBB_332'     => 'AutoPunish requer phpBB 3.3.2 ou superior.',
 
 	// Notifications section
 	'AUTOPUNISH_NOTIFICATIONS'          => 'Notificações',
@@ -78,6 +78,8 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_NOTIFICATION_TEXT_EXPLAIN' => 'Deixe em branco para enviar o texto predefinido, no idioma de cada utilizador.',
 	'AUTOPUNISH_TIER_GROUP_REQUIRED' => 'O nível %d adiciona utilizadores a um grupo, mas nenhum grupo existente está selecionado. Escolha um grupo ou altere a ação do nível.',
 	'AUTOPUNISH_TIERS_INACTIVE' => 'Estes níveis não têm nenhum grupo selecionado e estão inativos: %s. Ninguém é punido num nível inativo até lhe ser atribuído um grupo.',
+	'AUTOPUNISH_TEXT_TOO_LONG' => '«%1$s» é demasiado longo: podem ser guardados no máximo %2$d carateres, contando os carateres especiais e os emoji tal como são codificados, e este texto precisa de %3$d.',
+	'AUTOPUNISH_DURATION_TOO_LONG' => 'Nível %d: a duração é demasiado longa. A duração máxima é de 50 anos.',
 
 	// User management page
 	'AUTOPUNISH_STATUS_SUMMARY'         => 'Estado do AutoPunish',

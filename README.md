@@ -23,7 +23,7 @@ A phpBB extension that automatically punishes users when they accumulate warning
 
 ## Requirements
 
-- phpBB 3.3.1 or later
+- phpBB 3.3.2 or later
 - PHP 7.1.3 or later
 
 ## Installation
@@ -66,7 +66,7 @@ All settings are in the ACP under **Extensions → AutoPunish**.
 | Enable AutoPunish | Master on/off switch. While off, warnings trigger nothing and punishments do not expire. |
 | Warning during active punishment | What to do when a user receives a warning while already under a punishment (see below). |
 | Expiry check interval | How often (in minutes) the cron task checks for expired punishments. |
-| Exempt groups | Users in these groups are never punished. |
+| Exempt groups | Users in these groups are never punished. Founders and bots are never punished either, whatever is selected. |
 | Dry-run mode | Log the punishments that would be applied, without applying them. Nothing is logged for a warning below the threshold, and an active punishment is never restarted, replaced or escalated while dry run is on. Disable once you are satisfied with your tier configuration. |
 | Retroactive scan | Tick and save once to immediately punish all users who already meet a threshold. Founders and users who already have an active punishment are skipped. The checkbox resets automatically after the scan runs. |
 | Notifications | Enable bell notifications, PMs, and/or emails, and set the texts — see [Notifications](#notifications). |
@@ -88,8 +88,8 @@ Each row defines one punishment tier. The row position is the offense number (1s
 | Warning threshold (≥) | Minimum active warning count that triggers this tier. |
 | Action | Add to group or deactivate the account. |
 | Group | The group to add the user to (only for the "add to group" action, and required for it: the page will not save a group tier without one). Use a group that AutoPunish alone manages — if another extension also controls its membership, it can re-add users after AutoPunish removes them on expiry. |
-| Duration | Length of the punishment in days, weeks, or months (a month is 30 days). Set to 0 for permanent. Not used by "deactivate account", which is always permanent. |
-| Reason | Internal note visible to administrators in the log. |
+| Duration | Length of the punishment in days, weeks, or months (a month is 30 days). Set to 0 for permanent; the longest is 50 years. Not used by "deactivate account", which is always permanent. |
+| Reason | Internal note visible to administrators in the log, up to 255 characters (an `&` counts as five, an emoji as nine). |
 | Notification text | Text sent to the user for this tier, in the bell notification and as the PM/email body. Supports `{USERNAME}`, `{DURATION}`, `{REASON}`, `{OFFENSE_NUMBER}`. Leave it blank to send the built-in text in each user's own language. |
 
 A tier whose group is not set, or has since been deleted, is listed at the top of the page as inactive until a group is chosen.
@@ -131,7 +131,7 @@ AutoPunish adds an **AutoPunish** tab to the ACP **Manage Users** page (**Users 
 | Next offense would be | The tier that would fire on the next warning, including the threshold it activates at. Marked *repeating last tier* when the user is beyond the last configured tier, and *inactive* when it is a group tier without a valid group. |
 | Current active punishment | The ongoing punishment's offense number, action, reason, and expiry date (or *Permanent*). Only shown when a punishment is currently active. |
 
-**End punishment early** — available when a punishment is active. Removes the punishment immediately — taking the user out of the punishment group, or reactivating a deactivated account, unless that membership or deactivation was already there before the punishment — and notifies the user. The offense remains on the record. An optional *step-down* checkbox simultaneously applies the previous tier as a new, lighter punishment.
+**End punishment early** — available when a punishment is active. Removes the punishment immediately — taking the user out of the punishment group, or reactivating a deactivated account, unless that membership or deactivation was already there before the punishment — and notifies the user. The offense remains on the record. An optional *step-down* checkbox simultaneously applies the previous tier as a new, lighter punishment, unless the member is in an exempt group. The button acts on the member's stored active punishment: if it has ended since the page was opened, nothing is changed and the form is refused.
 
 **Commute offenses** — reduces the user's effective offense counter by a chosen amount. The next punishment will use a correspondingly lower tier. Does not affect any currently active punishment.
 
@@ -158,6 +158,28 @@ The group also needs some way into the ACP and the Manage Users page — in prac
 Everything AutoPunish does is written to the admin log (**Maintenance → Admin log**): punishments applied, expired, restarted, escalated and ended early, commutations, dry-run results, retroactive scan totals, users not punished because their tier is inactive or the group could not be joined, and PMs skipped because the sender account is missing. Actions taken from the Manage Users tab are logged under the name of the person who took them.
 
 ## Changelog
+
+### 1.2.1 — 2026-11-23
+
+**Fixed**
+
+- **The Manage Users form acted on whatever it was sent.** *End punishment early* took the punishment id and the offense number from the posted form, and checked neither against the member whose tab was open. A forged post could end another member's punishment, and with *step down* ticked it could apply any tier to any member: account deactivation for a member with no warnings, or for a member of an exempt group. A stale form did the same without any forging: after the cron expired a punishment, submitting the old form still answered "Punishment ended" and applied a new one. The form now only says which punishment the administrator was looking at. Everything else is read from that member's stored active punishment, and nothing is ended or applied when it no longer matches. Ending a punishment is also atomic now, so two administrators, or an administrator and the cron, cannot both end it, and the notification and the log entry are not repeated. A step-down no longer punishes a member of an exempt group.
+- **Saving the Tiers page with an emoji emptied the tiers.** On MySQL a reason or notification text containing an emoji, or any other character outside the Basic Multilingual Plane, ended the save with an SQL error, and because the old tiers were deleted before the new ones were inserted, nobody was punished until every tier was typed in again. Such characters are now stored as numeric references, the way phpBB stores titles, and shown again exactly as typed. The delete and the insert also run in one transaction, so a failed save leaves the saved tiers as they were. The texts on the Settings page are stored the same way, as phpBB's own board settings are.
+- **The expiry task ran on every cron check, not once per interval.** The time of its last run was kept as an ordinary config value, which phpBB serves from its cache, while the task wrote it without refreshing that cache. Every request after a run therefore read the time from before it, and the task counted as due again each time. It also took the single cron slot phpBB gives each request. The value is now flagged as one phpBB reads from the database each time.
+- **A tier could not last longer than about 194 days.** Its length was stored in a three-byte column that tops out at 16,777,215 seconds, so a tier set to seven months or a year ended the save with a raw SQL error. The column is wider, and the Tiers page now accepts up to 50 years and says so when a tier is longer.
+- **A text that was too long ended a save with an SQL error.** The notification texts on the Settings page are kept in the config table, whose values hold 255 characters, and a tier's reason has the same limit, counted after escaping and encoding (an `&` takes five). A longer one now gets a message naming the field. The Settings page also saved its fields one by one, so a failure part way left some of them changed: it now checks everything first and writes all or nothing. A warning mode that is not one of the three is ignored, and the check interval cannot go below one minute.
+- **The admin log showed identifiers.** A punishment was logged as "action: group, group: 8". The log now says "Add to group" or "Deactivate account" and names the group (built-in groups by their translated names), in the language of whoever was acting. Entries written before still read as they did.
+- **A deleted user's punishments stayed behind.** Their records, and their commuted-offense count, are now removed with the account, and the update removes the ones already left by earlier deletions.
+
+**Changed**
+
+- Founders and bots are never punished, as the retroactive scan already assumed. phpBB does not deactivate them, so a deactivation tier would have recorded a punishment and sent the notice without changing the account. This only comes up when someone warns a founder.
+- **phpBB 3.3.2 or later is required.** The installation step that grants the new permission to the stock administrator roles uses `permission.role_exists`, which phpBB's migration tools only have from 3.3.2.
+- **A migration of a released version is no longer changed.** 1.2.0 edited `install_default_tiers`, which had shipped in 1.0.0, so a new board was seeded differently from a board that had installed 1.0.0. That file is back exactly as 1.0.0 shipped it, and a new migration, `localize_default_tiers`, makes the change instead: a default tier that still holds its original English notification text gets an empty one, so recipients get the built-in text in their own language, and one that still holds its original reason gets the reason in the administrator's language. A tier you edited by hand is left alone. A new board ends up with the same four tiers as before.
+
+**Upgrading**
+
+This release includes migrations: they widen the tier duration column, flag the cron timestamp, and remove the records of users who no longer exist. See [Updating](#updating).
 
 ### 1.2.0 — 2026-11-07
 

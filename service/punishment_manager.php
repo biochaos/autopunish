@@ -43,8 +43,8 @@ class punishment_manager
 	/** @var string */
 	private $php_ext;
 
-	/** @var bool[] Whether each group id looked up so far exists. */
-	private $group_exists_cache = [];
+	/** @var array[]|false[] Each group id looked up so far: its row, or false when it does not exist. */
+	private $group_cache = [];
 
 	public function __construct(
 		\phpbb\db\driver\driver_interface $db,
@@ -190,7 +190,13 @@ class punishment_manager
 			return false;
 		}
 
-		$this->db->sql_query('UPDATE ' . $this->punishments_table . ' SET active = 0 WHERE punishment_id = ' . (int) $punishment_id);
+		// Conditional, so that a cron run or a second administrator ending the
+		// same punishment at the same moment does not undo it twice.
+		$this->db->sql_query('UPDATE ' . $this->punishments_table . ' SET active = 0 WHERE punishment_id = ' . (int) $punishment_id . ' AND active = 1');
+		if (!$this->db->sql_affectedrows())
+		{
+			return false;
+		}
 		$this->undo_punishment($punishment);
 
 		// Fetch username for logging
@@ -222,7 +228,7 @@ class punishment_manager
 	public function apply_stepdown_punishment($user_id, $step_to_offense)
 	{
 		$tier = $this->tier_manager->get_tier_for_offense($step_to_offense);
-		if (!$tier)
+		if (!$tier || $this->is_user_exempt($user_id))
 		{
 			return;
 		}
@@ -275,6 +281,28 @@ class punishment_manager
 		$delta     = $commuted - $old_commuted;
 		$effective = max(0, $total - $commuted);
 		$this->log->add('admin', $admin_id, $this->user->ip, 'LOG_AUTOPUNISH_COMMUTED', false, [$username, $delta, $commuted, $effective]);
+	}
+
+	/**
+	 * Removes what AutoPunish keeps about users who have been deleted: their
+	 * punishments and their commuted-offense count. phpBB takes their group
+	 * memberships and notifications with the account, so there is nothing to
+	 * undo, and the records would otherwise stay behind for good.
+	 *
+	 * @param int[] $user_ids
+	 */
+	public function delete_user_data(array $user_ids)
+	{
+		$user_ids = array_map('intval', $user_ids);
+		if (empty($user_ids))
+		{
+			return;
+		}
+
+		foreach ([$this->punishments_table, $this->commutations_table] as $table)
+		{
+			$this->db->sql_query('DELETE FROM ' . $table . ' WHERE ' . $this->db->sql_in_set('user_id', $user_ids));
+		}
 	}
 
 	/**
@@ -542,7 +570,8 @@ class punishment_manager
 	 */
 	private function log_dry_run($username, $offense_number, array $tier)
 	{
-		$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_DRY_RUN', false, [$username, $offense_number, $tier['action']]);
+		[$action, $group] = $this->log_labels($tier);
+		$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_DRY_RUN', false, [$username, $offense_number, $action, $group]);
 	}
 
 	private function apply_punishment($user_id, $username, $offense_number, array $tier)
@@ -606,8 +635,9 @@ class punishment_manager
 				$this->format_duration((int) $tier['duration_seconds']),
 				$this->user->format_date($end_time))
 			: $this->user->lang('AUTOPUNISH_DURATION_PERMANENT');
+		[$action, $group] = $this->log_labels($tier);
 		$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_APPLIED', false,
-			[$username, $offense_number, $tier['action'], $tier['group_id'], $duration_str, $tier['reason_text']]);
+			[$username, $offense_number, $action, $group, $duration_str, $tier['reason_text']]);
 
 		$this->send_notification('biochaos.autopunish.notification.punishment_applied', $user_id, [
 			'punishment_id'     => $punishment_id,
@@ -684,20 +714,53 @@ class punishment_manager
 
 	private function group_exists($group_id)
 	{
+		return $this->get_group_row($group_id) !== false;
+	}
+
+	/**
+	 * @return array|false The group's row, or false when there is no such group.
+	 */
+	private function get_group_row($group_id)
+	{
+		$group_id = (int) $group_id;
 		if ($group_id <= 0)
 		{
 			return false;
 		}
 
-		if (!isset($this->group_exists_cache[$group_id]))
+		if (!isset($this->group_cache[$group_id]))
 		{
-			$sql    = 'SELECT group_id FROM ' . GROUPS_TABLE . ' WHERE group_id = ' . (int) $group_id;
+			$sql    = 'SELECT group_id, group_name FROM ' . GROUPS_TABLE . ' WHERE group_id = ' . $group_id;
 			$result = $this->db->sql_query($sql);
-			$this->group_exists_cache[$group_id] = (bool) $this->db->sql_fetchrow($result);
+			$this->group_cache[$group_id] = $this->db->sql_fetchrow($result) ?: false;
 			$this->db->sql_freeresult($result);
 		}
 
-		return $this->group_exists_cache[$group_id];
+		return $this->group_cache[$group_id];
+	}
+
+	/**
+	 * What the admin log shows for a punishment's action and group. The log
+	 * keeps its arguments as plain strings, so they are worded now, in the
+	 * language of whoever is acting, instead of leaving the identifiers
+	 * "group" and "deactivate" and a group number for the log to print.
+	 *
+	 * @return string[] [action label, group name]
+	 */
+	private function log_labels(array $tier)
+	{
+		if ($tier['action'] === 'deactivate')
+		{
+			return [$this->user->lang('AUTOPUNISH_ACTION_DEACTIVATE'), '—'];
+		}
+
+		$group = $this->get_group_row($tier['group_id']);
+
+		return [
+			$this->user->lang('AUTOPUNISH_ACTION_GROUP'),
+			// Built-in groups are stored under identifiers such as REGISTERED.
+			$group ? $this->group_helper->get_name($group['group_name']) : '—',
+		];
 	}
 
 	private function is_user_inactive($user_id)
@@ -711,6 +774,18 @@ class punishment_manager
 
 	private function is_user_exempt($user_id)
 	{
+		// Founders and bots are never punished: phpBB's user_active_flip() skips
+		// them, so a deactivation would be recorded and announced without
+		// happening, and a group means nothing to a founder.
+		$sql       = 'SELECT user_type FROM ' . USERS_TABLE . ' WHERE user_id = ' . (int) $user_id;
+		$result    = $this->db->sql_query($sql);
+		$user_type = $this->db->sql_fetchfield('user_type');
+		$this->db->sql_freeresult($result);
+		if ($user_type !== false && in_array((int) $user_type, [USER_FOUNDER, USER_IGNORE], true))
+		{
+			return true;
+		}
+
 		$exempt_groups = array_filter(explode(',', $this->config['autopunish_exempt_groups']));
 		if (empty($exempt_groups))
 		{
@@ -999,7 +1074,7 @@ class punishment_manager
 		$messenger->template('@biochaos_autopunish/notification_email', $user['user_lang']);
 		$messenger->to($user['user_email'], $user['username']);
 		$messenger->assign_vars([
-			'SUBJECT'  => htmlspecialchars_decode($subject, ENT_COMPAT),
+			'SUBJECT'  => tier_manager::decode_text($subject),
 			'MESSAGE'  => $this->to_plain_text($body),
 		]);
 		$messenger->send(\NOTIFY_EMAIL);
@@ -1023,6 +1098,6 @@ class punishment_manager
 		\generate_text_for_storage($text, $uid, $bitfield, $flags, true, false, false);
 		\strip_bbcode($text, $uid);
 
-		return htmlspecialchars_decode($text, ENT_COMPAT);
+		return tier_manager::decode_text($text);
 	}
 }

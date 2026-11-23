@@ -52,7 +52,7 @@
 			</select>
 			<br /><small>{L_AUTOPUNISH_DURATION_ZERO}</small>
 		</td>
-		<td><input type="text" name="tiers[{tiers.TIER_INDEX}][reason_text]" value="{tiers.REASON_TEXT|escape('html_attr')}" size="30" /></td>
+		<td><input type="text" name="tiers[{tiers.TIER_INDEX}][reason_text]" value="{tiers.REASON_TEXT|escape('html_attr')}" size="30" maxlength="255" /></td>
 		<td><textarea name="tiers[{tiers.TIER_INDEX}][notification_text]" rows="2" cols="30">{tiers.NOTIFICATION_TEXT|escape('html')}</textarea></td>
 		<td><button type="button" class="button2" onclick="autopunishRemoveTier(this)">{L_AUTOPUNISH_REMOVE}</button></td>
 	</tr>
@@ -202,7 +202,7 @@ function autopunishAddTier() {
 	row.appendChild(durationCell);
 
 	row.appendChild(autopunishCell(autopunishEl('input', {
-		type: 'text', name: key + '[reason_text]', value: '', size: '30'
+		type: 'text', name: key + '[reason_text]', value: '', size: '30', maxlength: '255'
 	})));
 
 	row.appendChild(autopunishCell(autopunishEl('textarea', {

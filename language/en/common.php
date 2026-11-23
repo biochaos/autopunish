@@ -34,7 +34,7 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_RETROACTIVE'            => 'Run retroactive scan',
 	'AUTOPUNISH_RETROACTIVE_EXPLAIN'    => 'When checked and saved, a one-time scan will run to punish users who already meet the threshold. This checkbox resets automatically after the scan.',
 	'ACP_AUTOPUNISH_SETTINGS_SAVED'     => 'Settings saved.',
-	'AUTOPUNISH_REQUIRES_PHPBB_331'     => 'AutoPunish requires phpBB 3.3.1 or later.',
+	'AUTOPUNISH_REQUIRES_PHPBB_332'     => 'AutoPunish requires phpBB 3.3.2 or later.',
 
 	// Notifications section
 	'AUTOPUNISH_NOTIFICATIONS'          => 'Notifications',
@@ -78,6 +78,8 @@ $lang = array_merge($lang, [
 	'AUTOPUNISH_NOTIFICATION_TEXT_EXPLAIN' => 'Leave blank to send the default text, in each user\'s own language.',
 	'AUTOPUNISH_TIER_GROUP_REQUIRED' => 'Tier %d adds users to a group, but no existing group is selected. Choose a group, or change the tier\'s action.',
 	'AUTOPUNISH_TIERS_INACTIVE' => 'These tiers have no group selected and are inactive: %s. Nobody is punished at an inactive tier until a group is chosen for it.',
+	'AUTOPUNISH_TEXT_TOO_LONG' => '"%1$s" is too long: at most %2$d characters can be stored, counting special characters and emoji as they are encoded, and this text needs %3$d.',
+	'AUTOPUNISH_DURATION_TOO_LONG' => 'Tier %d: the duration is too long. The longest duration is 50 years.',
 
 	// User management page
 	'AUTOPUNISH_STATUS_SUMMARY'         => 'AutoPunish Status',

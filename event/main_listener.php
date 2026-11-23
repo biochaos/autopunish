@@ -8,6 +8,7 @@
 
 namespace biochaos\autopunish\event;
 
+use biochaos\autopunish\service\tier_manager;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class main_listener implements EventSubscriberInterface
@@ -60,6 +61,7 @@ class main_listener implements EventSubscriberInterface
 			'core.mcp_warn_post_after'    => 'on_warn_user',
 			'core.acp_users_mode_add'     => 'on_acp_users_mode_add',
 			'core.permissions'            => 'on_permissions',
+			'core.delete_user_after'      => 'on_delete_user',
 		];
 	}
 
@@ -83,6 +85,15 @@ class main_listener implements EventSubscriberInterface
 		$lang_set_ext   = $event['lang_set_ext'];
 		$lang_set_ext[] = ['ext_name' => 'biochaos/autopunish', 'lang_set' => 'common'];
 		$event['lang_set_ext'] = $lang_set_ext;
+	}
+
+	/**
+	 * A deleted user's punishment records are of no use to anyone, and would
+	 * otherwise stay in the tables for good.
+	 */
+	public function on_delete_user($event)
+	{
+		$this->punishment_manager->delete_user_data($event['user_ids']);
 	}
 
 	// -------------------------------------------------------------------------
@@ -125,13 +136,21 @@ class main_listener implements EventSubscriberInterface
 			{
 				trigger_error('FORM_INVALID', E_USER_WARNING);
 			}
-			$punishment_id  = $this->request->variable('punishment_id', 0);
-			$step_down      = $this->request->variable('step_down', 0);
-			$active_offense = $this->request->variable('active_offense_number', 0);
-			$this->punishment_manager->end_punishment_early($punishment_id, $this->user->data['user_id']);
-			if ($step_down && $active_offense > 1)
+
+			// Everything comes from the stored punishment of the member whose tab
+			// is open. The form only says which punishment the administrator was
+			// looking at, so a stale form, or one posted for another member, ends
+			// nothing.
+			$active    = $this->punishment_manager->get_active_punishment($user_id);
+			$step_down = $this->request->variable('step_down', 0);
+			if (!$active || (int) $active['punishment_id'] !== $this->request->variable('punishment_id', 0)
+				|| !$this->punishment_manager->end_punishment_early($active['punishment_id'], $this->user->data['user_id']))
 			{
-				$this->punishment_manager->apply_stepdown_punishment($user_id, $active_offense - 1);
+				trigger_error($this->user->lang('FORM_INVALID') . adm_back_link($u_action . '&u=' . $user_id), E_USER_WARNING);
+			}
+			if ($step_down && $active['offense_number'] > 1)
+			{
+				$this->punishment_manager->apply_stepdown_punishment($user_id, $active['offense_number'] - 1);
 			}
 			trigger_error($this->user->lang('ACP_AUTOPUNISH_PUNISHMENT_ENDED') . adm_back_link($u_action . '&u=' . $user_id));
 		}
@@ -195,12 +214,11 @@ class main_listener implements EventSubscriberInterface
 	}
 
 	/**
-	 * Text stored the way phpBB's request class returns it, HTML-escaped, for a
-	 * template that escapes it itself.
+	 * Stored text as it was typed, for a template that escapes it itself.
 	 */
 	private function decode($text)
 	{
-		return htmlspecialchars_decode((string) $text, ENT_COMPAT);
+		return tier_manager::decode_text($text);
 	}
 
 	/**

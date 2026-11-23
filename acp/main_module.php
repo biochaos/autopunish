@@ -8,8 +8,23 @@
 
 namespace biochaos\autopunish\acp;
 
+use biochaos\autopunish\service\tier_manager;
+
 class main_module
 {
+	/**
+	 * The settings that hold free text, each with the language key of its label.
+	 * They live in the config table, whose values hold 255 characters.
+	 */
+	const SETTING_TEXTS = [
+		'autopunish_notify_subject'         => 'AUTOPUNISH_NOTIFY_SUBJECT',
+		'autopunish_notify_footer'          => 'AUTOPUNISH_NOTIFY_FOOTER',
+		'autopunish_notify_expiry_subject'  => 'AUTOPUNISH_NOTIFY_EXPIRY_SUBJECT',
+		'autopunish_notify_expiry_text'     => 'AUTOPUNISH_NOTIFY_EXPIRY_TEXT',
+		'autopunish_notify_commute_subject' => 'AUTOPUNISH_NOTIFY_COMMUTE_SUBJECT',
+		'autopunish_notify_commute_text'    => 'AUTOPUNISH_NOTIFY_COMMUTE_TEXT',
+	];
+
 	public $u_action;
 	public $tpl_name;
 	public $page_title;
@@ -81,25 +96,55 @@ class main_module
 				trigger_error($user->lang('AUTOPUNISH_SENDER_REQUIRED') . adm_back_link($this->u_action), E_USER_WARNING);
 			}
 
-			$config->set('autopunish_enabled',               $request->variable('autopunish_enabled', 0));
-			$config->set('autopunish_warn_during_punishment', $request->variable('autopunish_warn_during_punishment', 'restart'));
-			$config->set('autopunish_cron_interval',          $request->variable('autopunish_cron_interval', 60));
+			// The texts live in the config table, whose values hold 255 characters,
+			// counted after escaping and encoding. One that is too long would end
+			// the save with an SQL error half way through, so they are all checked
+			// first.
+			$texts  = [];
+			$errors = [];
+			foreach (self::SETTING_TEXTS as $key => $label)
+			{
+				$texts[$key] = tier_manager::encode_text($request->variable($key, '', true));
+				$length      = utf8_strlen($texts[$key]);
+				if ($length > tier_manager::MAX_TEXT_LENGTH)
+				{
+					$errors[] = $user->lang('AUTOPUNISH_TEXT_TOO_LONG', $user->lang($label), tier_manager::MAX_TEXT_LENGTH, $length);
+				}
+			}
+			if ($errors)
+			{
+				trigger_error(implode('<br />', $errors) . adm_back_link($this->u_action), E_USER_WARNING);
+			}
+
+			// An unknown mode keeps the one already set.
+			$warn_mode = $request->variable('autopunish_warn_during_punishment', '');
+			if (!in_array($warn_mode, ['restart', 'normal', 'escalate'], true))
+			{
+				$warn_mode = $config['autopunish_warn_during_punishment'];
+			}
+
+			// All or nothing, so that a failure part way leaves the settings as they were.
+			$db->sql_transaction('begin');
+
+			$config->set('autopunish_enabled',                $request->variable('autopunish_enabled', 0));
+			$config->set('autopunish_warn_during_punishment', $warn_mode);
+			$config->set('autopunish_cron_interval',          max(1, $request->variable('autopunish_cron_interval', 60)));
 			$config->set('autopunish_dry_run',                $request->variable('autopunish_dry_run', 0));
 			$config->set('autopunish_notify_forum',           $request->variable('autopunish_notify_forum', 0));
 			$config->set('autopunish_notify_pm',              $notify_pm);
 			$config->set('autopunish_notify_email',           $notify_email);
 			$config->set('autopunish_notify_sender_id',       $sender_id);
 
-			$config->set('autopunish_notify_subject',          $request->variable('autopunish_notify_subject', '', true));
-			$config->set('autopunish_notify_footer',          $request->variable('autopunish_notify_footer', '', true));
-			$config->set('autopunish_notify_expiry_subject',  $request->variable('autopunish_notify_expiry_subject', '', true));
-			$config->set('autopunish_notify_expiry_text',     $request->variable('autopunish_notify_expiry_text', '', true));
-			$config->set('autopunish_notify_commute_subject', $request->variable('autopunish_notify_commute_subject', '', true));
-			$config->set('autopunish_notify_commute_text',    $request->variable('autopunish_notify_commute_text', '', true));
+			foreach ($texts as $key => $value)
+			{
+				$config->set($key, $value);
+			}
 
 			// Exempt groups — stored as comma-separated group IDs
 			$exempt = $request->variable('autopunish_exempt_groups', [0]);
 			$config->set('autopunish_exempt_groups', implode(',', array_map('intval', $exempt)));
+
+			$db->sql_transaction('commit');
 
 			// Retroactive toggle — run scanner then auto-disable
 			if ($request->variable('autopunish_retroactive', 0))
@@ -192,7 +237,9 @@ class main_module
 				{
 					continue;
 				}
-				$duration_value = max(0, (int) ($tier['duration_value'] ?? 0));
+				// Capped so that the length in seconds stays an integer; anything
+				// near the cap is refused below as too long anyway.
+				$duration_value = min(1000000, max(0, (int) ($tier['duration_value'] ?? 0)));
 				$tiers[] = [
 					'warning_threshold' => max(1, (int) ($tier['warning_threshold'] ?? 3)),
 					'action'            => ($tier['action'] ?? 'group') === 'deactivate' ? 'deactivate' : 'group',
@@ -203,13 +250,26 @@ class main_module
 				];
 			}
 
-			// A group tier must name a group that exists. On error the submitted
-			// rows are shown again, so nothing the administrator typed is lost.
+			// A group tier must name a group that exists, and the lengths must fit
+			// their columns. On error the submitted rows are shown again, so
+			// nothing the administrator typed is lost.
 			foreach ($tiers as $i => $tier)
 			{
 				if ($tier['action'] === 'group' && !in_array($tier['group_id'], $group_ids, true))
 				{
 					$errors[] = $user->lang('AUTOPUNISH_TIER_GROUP_REQUIRED', $i + 1);
+				}
+
+				if ($tier['duration_seconds'] > tier_manager::MAX_DURATION)
+				{
+					$errors[] = $user->lang('AUTOPUNISH_DURATION_TOO_LONG', $i + 1);
+					$tiers[$i]['duration_seconds'] = tier_manager::MAX_DURATION;
+				}
+
+				$length = tier_manager::stored_length($tier['reason_text']);
+				if ($length > tier_manager::MAX_TEXT_LENGTH)
+				{
+					$errors[] = $user->lang('AUTOPUNISH_TEXT_TOO_LONG', $user->lang('AUTOPUNISH_REASON_TEXT') . ' (#' . ($i + 1) . ')', tier_manager::MAX_TEXT_LENGTH, $length);
 				}
 			}
 
@@ -259,8 +319,8 @@ class main_module
 				// Stored the way phpBB's request class returns text, HTML-escaped;
 				// the template escapes for its own context, so decode once here or
 				// every save would escape the text again.
-				'REASON_TEXT'       => htmlspecialchars_decode($tier['reason_text'], ENT_COMPAT),
-				'NOTIFICATION_TEXT' => htmlspecialchars_decode($tier['notification_text'], ENT_COMPAT),
+				'REASON_TEXT'       => tier_manager::decode_text($tier['reason_text']),
+				'NOTIFICATION_TEXT' => tier_manager::decode_text($tier['notification_text']),
 			];
 			$template->assign_block_vars('tiers', $tier_tpl);
 
