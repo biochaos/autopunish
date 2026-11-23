@@ -9,6 +9,7 @@
 namespace biochaos\autopunish\notification\type;
 
 use biochaos\autopunish\service\duration;
+use biochaos\autopunish\service\placeholders;
 
 abstract class base_punishment extends \phpbb\notification\type\base
 {
@@ -75,12 +76,7 @@ abstract class base_punishment extends \phpbb\notification\type\base
 		$vars = (array) $this->get_data('placeholders');
 		$vars['DURATION'] = $this->language->lang($key, $count);
 
-		foreach ($vars as $name => $value)
-		{
-			$tpl = str_replace('{' . $name . '}', $value, $tpl);
-		}
-
-		return $tpl;
+		return placeholders::replace($tpl, $vars);
 	}
 
 	public function get_reference()

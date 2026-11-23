@@ -22,6 +22,7 @@
 - The Tiers page no longer offers Guests, Registered users, Bots, Global moderators or Administrators as a punishment group: the first three mean nothing, and the last two would be a promotion. Newly registered users is still offered. A tier that already names one of them is treated as inactive.
 - A PM or email is worded in the recipient's language, then the board's default language, then English, which is the order phpBB itself uses. It used to skip the board default.
 - The help text under the notification texts said BBCode works in emails; it is removed from them.
+- Internal: the punishment manager, which also sent the notifications and changed accounts, is split into three services (`punishment_manager`, `notifier`, `account_manager`), the placeholder filling that the bell and the PM and email each had is one class, and the action and mode names are constants. Nothing changes for administrators, except that a placeholder's value is never filled in again (a reason that contains `{USERNAME}` stays as typed), and that the three notification types are listed under Miscellaneous, not Moderation, in the UCP notification options. The Settings page escapes its texts the way the Tiers page does.
 
 ### Upgrading
 

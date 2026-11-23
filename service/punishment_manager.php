@@ -10,6 +10,18 @@ namespace biochaos\autopunish\service;
 
 class punishment_manager
 {
+	/** What happens to a user who is warned while already punished: the timer starts again... */
+	const MODE_RESTART = 'restart';
+
+	/** ...the usual thresholds apply... */
+	const MODE_NORMAL = 'normal';
+
+	/** ...or the next tier applies at once. These are the values of the setting. */
+	const MODE_ESCALATE = 'escalate';
+
+	/** Every mode there is. */
+	const MODES = [self::MODE_RESTART, self::MODE_NORMAL, self::MODE_ESCALATE];
+
 	/** Expired punishments handled per batch. */
 	const EXPIRY_BATCH_SIZE = 100;
 
@@ -28,14 +40,17 @@ class punishment_manager
 	/** @var \phpbb\log\log_interface */
 	private $log;
 
-	/** @var \phpbb\notification\manager */
-	private $notification_manager;
-
 	/** @var \phpbb\user */
 	private $user;
 
 	/** @var tier_manager */
 	private $tier_manager;
+
+	/** @var account_manager */
+	private $accounts;
+
+	/** @var notifier */
+	private $notifier;
 
 	/** @var string */
 	private $punishments_table;
@@ -43,40 +58,29 @@ class punishment_manager
 	/** @var string */
 	private $commutations_table;
 
-	/** @var string */
-	private $phpbb_root_path;
-
-	/** @var string */
-	private $php_ext;
-
-	/** @var array[]|false[] Each group id looked up so far: its row, or false when it does not exist. */
-	private $group_cache = [];
-
 	public function __construct(
 		\phpbb\db\driver\driver_interface $db,
 		\phpbb\config\config $config,
 		\phpbb\group\helper $group_helper,
 		\phpbb\log\log_interface $log,
-		\phpbb\notification\manager $notification_manager,
 		\phpbb\user $user,
 		tier_manager $tier_manager,
+		account_manager $accounts,
+		notifier $notifier,
 		$punishments_table,
-		$commutations_table,
-		$phpbb_root_path,
-		$php_ext
+		$commutations_table
 	)
 	{
-		$this->db                   = $db;
-		$this->config               = $config;
-		$this->group_helper         = $group_helper;
-		$this->log                  = $log;
-		$this->notification_manager = $notification_manager;
-		$this->user                 = $user;
-		$this->tier_manager         = $tier_manager;
-		$this->punishments_table    = $punishments_table;
-		$this->commutations_table   = $commutations_table;
-		$this->phpbb_root_path      = $phpbb_root_path;
-		$this->php_ext              = $php_ext;
+		$this->db                 = $db;
+		$this->config             = $config;
+		$this->group_helper       = $group_helper;
+		$this->log                = $log;
+		$this->user               = $user;
+		$this->tier_manager       = $tier_manager;
+		$this->accounts           = $accounts;
+		$this->notifier           = $notifier;
+		$this->punishments_table  = $punishments_table;
+		$this->commutations_table = $commutations_table;
 	}
 
 	// -------------------------------------------------------------------------
@@ -225,7 +229,7 @@ class punishment_manager
 
 		$this->log->add('admin', $admin_id, $this->user->ip, 'LOG_AUTOPUNISH_ENDED_EARLY', false, [$username, $punishment['offense_number']]);
 
-		$this->send_notification('biochaos.autopunish.notification.punishment_commuted', $punishment['user_id'], [
+		$this->notifier->notify('biochaos.autopunish.notification.punishment_commuted', $punishment['user_id'], [
 			'punishment_id'     => $punishment['punishment_id'],
 			'offense_number'    => $punishment['offense_number'],
 			'notification_tpl'  => $this->config['autopunish_notify_commute_text'],
@@ -331,14 +335,14 @@ class punishment_manager
 	 */
 	public function is_tier_usable(array $tier)
 	{
-		if ($tier['action'] === 'deactivate')
+		if ($tier['action'] === tier_manager::ACTION_DEACTIVATE)
 		{
 			return true;
 		}
 
 		// A tier saved before the Tiers page stopped offering such groups can
 		// still name one: adding someone to Administrators is no punishment.
-		$group = $this->get_group_row($tier['group_id']);
+		$group = $this->accounts->get_group_row($tier['group_id']);
 
 		return $group !== false && !in_array($group['group_name'], tier_manager::UNSUITABLE_GROUPS, true);
 	}
@@ -518,12 +522,12 @@ class punishment_manager
 
 		switch ($mode)
 		{
-			case 'restart':
+			case self::MODE_RESTART:
 				if ($active['end_time'] > 0)
 				{
 					if ($this->config['autopunish_dry_run'])
 					{
-						$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_DRY_RUN_RESTART', false, [$username, $active['offense_number']]);
+						$this->log_admin('LOG_AUTOPUNISH_DRY_RUN_RESTART', [$username, $active['offense_number']]);
 						return false;
 					}
 
@@ -533,12 +537,12 @@ class punishment_manager
 						SET start_time = ' . $now . ', end_time = ' . ($now + $duration) . ',
 							trigger_warning_id = ' . $this->get_latest_warning_id($user_id) . '
 						WHERE punishment_id = ' . (int) $active['punishment_id']);
-					$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_RESTARTED', false, [$username, $active['offense_number']]);
+					$this->log_admin('LOG_AUTOPUNISH_RESTARTED', [$username, $active['offense_number']]);
 					return true;
 				}
 			break;
 
-			case 'normal':
+			case self::MODE_NORMAL:
 				$offense_number = $this->get_next_offense_number($user_id);
 				$tier           = $this->tier_manager->get_tier_for_offense($offense_number);
 				if ($tier && $user_warnings >= $tier['warning_threshold'])
@@ -560,7 +564,7 @@ class punishment_manager
 				}
 			break;
 
-			case 'escalate':
+			case self::MODE_ESCALATE:
 				$offense_number = $this->get_next_offense_number($user_id);
 				$tier           = $this->tier_manager->get_tier_for_offense($offense_number);
 				if (!$tier)
@@ -578,8 +582,7 @@ class punishment_manager
 					return false;
 				}
 				$this->end_active_punishment($active);
-				$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_ESCALATED', false,
-					[$username, $active['offense_number'], $offense_number]);
+				$this->log_admin('LOG_AUTOPUNISH_ESCALATED', [$username, $active['offense_number'], $offense_number]);
 				return $this->apply_punishment($user_id, $username, $offense_number, $tier);
 			break;
 		}
@@ -593,7 +596,7 @@ class punishment_manager
 	private function log_dry_run($username, $offense_number, array $tier)
 	{
 		[$action, $group] = $this->log_labels($tier);
-		$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_DRY_RUN', false, [$username, $offense_number, $action, $group]);
+		$this->log_admin('LOG_AUTOPUNISH_DRY_RUN', [$username, $offense_number, $action, $group]);
 	}
 
 	private function apply_punishment($user_id, $username, $offense_number, array $tier)
@@ -601,7 +604,7 @@ class punishment_manager
 		// Deactivation is always permanent: expiry only ever removes a group
 		// membership, so a deactivation given an end time would lapse while
 		// leaving the account deactivated.
-		if ($tier['action'] === 'deactivate')
+		if ($tier['action'] === tier_manager::ACTION_DEACTIVATE)
 		{
 			$tier['duration_seconds'] = 0;
 		}
@@ -611,27 +614,26 @@ class punishment_manager
 
 		// Make the change first, so a punishment is only recorded once it has
 		// taken effect, and note whether this punishment made it.
-		if ($tier['action'] === 'deactivate')
+		if ($tier['action'] === tier_manager::ACTION_DEACTIVATE)
 		{
 			// An account that is already inactive was deactivated by someone
 			// else, and ending this punishment must leave it that way.
-			$applied_change = !$this->is_user_inactive($user_id);
+			$applied_change = !$this->accounts->is_user_inactive($user_id);
 			if ($applied_change)
 			{
-				$this->deactivate_user($user_id);
+				$this->accounts->deactivate_user($user_id);
 			}
 		}
 		else
 		{
-			$result = $this->add_to_group($user_id, $tier['group_id']);
+			$result = $this->accounts->add_to_group($user_id, $tier['group_id']);
 
 			// A user who is already in the group keeps that membership when
 			// the punishment ends.
 			$applied_change = ($result === false);
 			if ($result !== false && $result !== 'GROUP_USERS_EXIST')
 			{
-				$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_GROUP_FAILED', false,
-					[$username, (int) $tier['group_id'], $result]);
+				$this->log_admin('LOG_AUTOPUNISH_GROUP_FAILED', [$username, (int) $tier['group_id'], $result]);
 				return false;
 			}
 		}
@@ -658,10 +660,9 @@ class punishment_manager
 				$this->user->format_date($end_time))
 			: $this->user->lang('AUTOPUNISH_DURATION_PERMANENT');
 		[$action, $group] = $this->log_labels($tier);
-		$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_APPLIED', false,
-			[$username, $offense_number, $action, $group, $duration_str, $tier['reason_text']]);
+		$this->log_admin('LOG_AUTOPUNISH_APPLIED', [$username, $offense_number, $action, $group, $duration_str, $tier['reason_text']]);
 
-		$this->send_notification('biochaos.autopunish.notification.punishment_applied', $user_id, [
+		$this->notifier->notify('biochaos.autopunish.notification.punishment_applied', $user_id, [
 			'punishment_id'     => $punishment_id,
 			'offense_number'    => $offense_number,
 			'notification_tpl'  => $tier['notification_text'],
@@ -685,7 +686,7 @@ class punishment_manager
 
 		$this->log->add('admin', \ANONYMOUS, '', 'LOG_AUTOPUNISH_EXPIRED', false, [$punishment['username'], $punishment['offense_number']]);
 
-		$this->send_notification('biochaos.autopunish.notification.punishment_expired', $punishment['user_id'], [
+		$this->notifier->notify('biochaos.autopunish.notification.punishment_expired', $punishment['user_id'], [
 			'punishment_id'     => $punishment['punishment_id'],
 			'offense_number'    => $punishment['offense_number'],
 			'notification_tpl'  => $this->config['autopunish_notify_expiry_text'],
@@ -744,46 +745,28 @@ class punishment_manager
 			return;
 		}
 
-		if ($punishment['action'] === 'group' && $punishment['group_id'])
+		if ($punishment['action'] === tier_manager::ACTION_GROUP && $punishment['group_id'])
 		{
-			$this->remove_from_group($punishment['user_id'], $punishment['group_id']);
+			$this->accounts->remove_from_group($punishment['user_id'], $punishment['group_id']);
 		}
-		else if ($punishment['action'] === 'deactivate')
+		else if ($punishment['action'] === tier_manager::ACTION_DEACTIVATE)
 		{
-			$this->reactivate_user($punishment['user_id']);
+			$this->accounts->reactivate_user($punishment['user_id']);
 		}
+	}
+
+	/**
+	 * An admin log entry for something done by the current user: the moderator
+	 * whose warning triggered it, or the administrator in the ACP.
+	 */
+	private function log_admin($operation, array $arguments)
+	{
+		$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, $operation, false, $arguments);
 	}
 
 	private function log_unusable_tier($username, $offense_number)
 	{
-		$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_TIER_INACTIVE', false, [$username, $offense_number]);
-	}
-
-	private function group_exists($group_id)
-	{
-		return $this->get_group_row($group_id) !== false;
-	}
-
-	/**
-	 * @return array|false The group's row, or false when there is no such group.
-	 */
-	private function get_group_row($group_id)
-	{
-		$group_id = (int) $group_id;
-		if ($group_id <= 0)
-		{
-			return false;
-		}
-
-		if (!isset($this->group_cache[$group_id]))
-		{
-			$sql    = 'SELECT group_id, group_name FROM ' . GROUPS_TABLE . ' WHERE group_id = ' . $group_id;
-			$result = $this->db->sql_query($sql);
-			$this->group_cache[$group_id] = $this->db->sql_fetchrow($result) ?: false;
-			$this->db->sql_freeresult($result);
-		}
-
-		return $this->group_cache[$group_id];
+		$this->log_admin('LOG_AUTOPUNISH_TIER_INACTIVE', [$username, $offense_number]);
 	}
 
 	/**
@@ -796,27 +779,18 @@ class punishment_manager
 	 */
 	private function log_labels(array $tier)
 	{
-		if ($tier['action'] === 'deactivate')
+		if ($tier['action'] === tier_manager::ACTION_DEACTIVATE)
 		{
 			return [$this->user->lang('AUTOPUNISH_ACTION_DEACTIVATE'), '—'];
 		}
 
-		$group = $this->get_group_row($tier['group_id']);
+		$group = $this->accounts->get_group_row($tier['group_id']);
 
 		return [
 			$this->user->lang('AUTOPUNISH_ACTION_GROUP'),
 			// Built-in groups are stored under identifiers such as REGISTERED.
 			$group ? $this->group_helper->get_name($group['group_name']) : '—',
 		];
-	}
-
-	private function is_user_inactive($user_id)
-	{
-		$sql       = 'SELECT user_type FROM ' . USERS_TABLE . ' WHERE user_id = ' . (int) $user_id;
-		$result    = $this->db->sql_query($sql);
-		$user_type = (int) $this->db->sql_fetchfield('user_type');
-		$this->db->sql_freeresult($result);
-		return $user_type === USER_INACTIVE;
 	}
 
 	private function is_user_exempt($user_id)
@@ -858,43 +832,6 @@ class punishment_manager
 		return $row ?: false;
 	}
 
-	private function ensure_user_functions_loaded()
-	{
-		if (!function_exists('group_user_add'))
-		{
-			include($this->phpbb_root_path . 'includes/functions_user.' . $this->php_ext);
-		}
-	}
-
-	/**
-	 * @return string|false False when the user was added, otherwise the error
-	 *                      key from group_user_add(): GROUP_USERS_EXIST when
-	 *                      they were already in the group.
-	 */
-	private function add_to_group($user_id, $group_id)
-	{
-		$this->ensure_user_functions_loaded();
-		return \group_user_add((int) $group_id, [(int) $user_id]);
-	}
-
-	private function remove_from_group($user_id, $group_id)
-	{
-		$this->ensure_user_functions_loaded();
-		\group_user_del($group_id, [$user_id]);
-	}
-
-	private function deactivate_user($user_id)
-	{
-		$this->ensure_user_functions_loaded();
-		\user_active_flip('deactivate', $user_id, \INACTIVE_MANUAL);
-	}
-
-	private function reactivate_user($user_id)
-	{
-		$this->ensure_user_functions_loaded();
-		\user_active_flip('activate', $user_id);
-	}
-
 	/**
 	 * A punishment length in the current user's language, for the admin log.
 	 */
@@ -902,259 +839,5 @@ class punishment_manager
 	{
 		[$key, $count] = duration::lang_args($seconds);
 		return $this->user->lang($key, $count);
-	}
-
-	private function replace_placeholders($text, array $vars)
-	{
-		foreach ($vars as $key => $value)
-		{
-			$text = str_replace('{' . $key . '}', $value, $text);
-		}
-		return $text;
-	}
-
-	private function send_notification($type, $user_id, array $data)
-	{
-		// Forum bell. Its text is worded when it is displayed, in the reader's
-		// own language, so it is handed on as a template with its placeholders.
-		if ($this->config['autopunish_notify_forum'])
-		{
-			$this->notification_manager->add_notifications($type, array_merge($data, ['user_id' => $user_id]));
-		}
-
-		if (!$this->config['autopunish_notify_pm'] && !$this->config['autopunish_notify_email'])
-		{
-			return;
-		}
-
-		// Load recipient's language file once — used for body, DURATION, and subject
-		$recipient_lang_data = $this->load_lang_array($this->get_user_lang($user_id));
-
-		$placeholders = $data['placeholders'] ?? [];
-		if (isset($data['duration_seconds']))
-		{
-			$placeholders['DURATION'] = $this->format_duration_from_lang($data['duration_seconds'], $recipient_lang_data);
-		}
-
-		static $type_defaults = [
-			'biochaos.autopunish.notification.punishment_applied'  => [
-				'title' => 'AUTOPUNISH_NOTIFY_APPLIED_TITLE',
-				'body'  => 'AUTOPUNISH_NOTIFY_APPLIED_DEFAULT_BODY',
-			],
-			'biochaos.autopunish.notification.punishment_expired'  => [
-				'title' => 'AUTOPUNISH_NOTIFY_EXPIRED_TITLE',
-				'body'  => 'AUTOPUNISH_NOTIFY_EXPIRED_DEFAULT_BODY',
-			],
-			'biochaos.autopunish.notification.punishment_commuted' => [
-				'title' => 'AUTOPUNISH_NOTIFY_COMMUTED_TITLE',
-				'body'  => 'AUTOPUNISH_NOTIFY_COMMUTED_DEFAULT_BODY',
-			],
-		];
-
-		// Body: configured template → language file default → skip
-		$tpl = $data['notification_tpl'] ?? '';
-		if ($tpl !== '')
-		{
-			$pm_text = $this->replace_placeholders($tpl, $placeholders);
-		}
-		else if (isset($type_defaults[$type], $recipient_lang_data[$type_defaults[$type]['body']]))
-		{
-			$pm_text = $this->replace_placeholders($recipient_lang_data[$type_defaults[$type]['body']], $placeholders);
-		}
-		else
-		{
-			return;
-		}
-
-		$footer = $this->replace_placeholders($this->config['autopunish_notify_footer'], $placeholders);
-		$body   = $pm_text . ($footer ? "\n\n" . $footer : '');
-
-		// Subject: type-specific template → language file title → body text
-		static $type_subject_config = [
-			'biochaos.autopunish.notification.punishment_applied'  => 'autopunish_notify_subject',
-			'biochaos.autopunish.notification.punishment_expired'  => 'autopunish_notify_expiry_subject',
-			'biochaos.autopunish.notification.punishment_commuted' => 'autopunish_notify_commute_subject',
-		];
-		$subject_config_key = $type_subject_config[$type] ?? 'autopunish_notify_subject';
-		$subject_tpl = $this->config[$subject_config_key] ?? '';
-		if (!empty($subject_tpl))
-		{
-			$subject = $this->replace_placeholders($subject_tpl, $placeholders);
-		}
-		else if (isset($type_defaults[$type], $recipient_lang_data[$type_defaults[$type]['title']]))
-		{
-			$subject = $recipient_lang_data[$type_defaults[$type]['title']];
-		}
-		else
-		{
-			$subject = $pm_text;
-		}
-
-		if ($this->config['autopunish_notify_pm'])
-		{
-			$this->send_pm($user_id, $subject, $body);
-		}
-
-		if ($this->config['autopunish_notify_email'])
-		{
-			$this->send_email($user_id, $subject, $body);
-		}
-	}
-
-	private function get_user_lang($user_id)
-	{
-		$sql    = 'SELECT user_lang FROM ' . USERS_TABLE . ' WHERE user_id = ' . (int) $user_id;
-		$result = $this->db->sql_query($sql);
-		$lang   = $this->db->sql_fetchfield('user_lang');
-		$this->db->sql_freeresult($result);
-		return $lang ?: 'en';
-	}
-
-	private function load_lang_array($lang_code)
-	{
-		$lang = [];
-
-		// The recipient's language, then the board's default, then English: the
-		// order phpBB's own language service falls back in.
-		foreach (array_unique([$lang_code, $this->config['default_lang'], 'en']) as $try_lang)
-		{
-			// The name becomes part of a path.
-			if (!preg_match('/^[a-z0-9_-]+$/i', (string) $try_lang))
-			{
-				continue;
-			}
-
-			$file = $this->phpbb_root_path . 'ext/biochaos/autopunish/language/' . $try_lang . '/common.php';
-			if (file_exists($file))
-			{
-				include $file;
-				break;
-			}
-		}
-		return $lang;
-	}
-
-	/**
-	 * A punishment length worded from a recipient's raw language array.
-	 */
-	private function format_duration_from_lang($seconds, array $lang)
-	{
-		[$key, $count] = duration::lang_args($seconds);
-		$text = $lang[$key] ?? null;
-
-		if ($text === null)
-		{
-			return (string) $count;
-		}
-		if (is_array($text))
-		{
-			$text = ($count === 1) ? ($text[1] ?? '%d') : ($text[2] ?? '%d');
-		}
-
-		return sprintf($text, $count);
-	}
-
-	private function send_pm($to_user_id, $subject, $body)
-	{
-		if (!function_exists('submit_pm'))
-		{
-			include($this->phpbb_root_path . 'includes/functions_privmsgs.' . $this->php_ext);
-		}
-		if (!function_exists('generate_text_for_storage'))
-		{
-			include($this->phpbb_root_path . 'includes/functions_content.' . $this->php_ext);
-		}
-
-		$sender_id = (int) $this->config['autopunish_notify_sender_id'];
-		if (!$sender_id)
-		{
-			return;
-		}
-
-		// Parse BBCode in message body. The uid and bitfield are filled in by the
-		// parser, which is the only thing that knows them.
-		$bbcode_uid      = '';
-		$bbcode_bitfield = '';
-		$bbcode_flags    = \OPTION_FLAG_BBCODE | \OPTION_FLAG_SMILIES | \OPTION_FLAG_LINKS;
-		\generate_text_for_storage($body, $bbcode_uid, $bbcode_bitfield, $bbcode_flags, true, true, true);
-
-		$pm_data = [
-			'from_user_id'    => $sender_id,
-			'from_username'   => '',
-			'from_user_ip'    => $this->user->ip ?: '0.0.0.0',
-			'reply_from_msgid' => 0,
-			'icon_id'         => 0,
-			'enable_bbcode'   => 1,
-			'enable_smilies'  => 1,
-			'enable_urls'     => 1,
-			'enable_sig'      => 0,
-			'message'         => $body,
-			'bbcode_bitfield' => $bbcode_bitfield,
-			'bbcode_uid'      => $bbcode_uid,
-			'address_list'    => ['u' => [$to_user_id => 'to']],
-		];
-
-		// Fetch sender username
-		$sql      = 'SELECT username FROM ' . USERS_TABLE . ' WHERE user_id = ' . $sender_id;
-		$result   = $this->db->sql_query($sql);
-		$username = $this->db->sql_fetchfield('username');
-		$this->db->sql_freeresult($result);
-
-		if (!$username)
-		{
-			$this->log->add('admin', $this->user->data['user_id'], $this->user->ip, 'LOG_AUTOPUNISH_SENDER_MISSING', false, [$sender_id]);
-			return;
-		}
-
-		$pm_data['from_username'] = (string) $username;
-		\submit_pm('post', $subject, $pm_data, false);
-	}
-
-	private function send_email($to_user_id, $subject, $body)
-	{
-		$sql    = 'SELECT username, user_email, user_lang FROM ' . USERS_TABLE . ' WHERE user_id = ' . (int) $to_user_id;
-		$result = $this->db->sql_query($sql);
-		$user   = $this->db->sql_fetchrow($result);
-		$this->db->sql_freeresult($result);
-
-		if (!$user || empty($user['user_email']))
-		{
-			return;
-		}
-
-		if (!class_exists('messenger'))
-		{
-			include($this->phpbb_root_path . 'includes/functions_messenger.' . $this->php_ext);
-		}
-
-		$messenger = new \messenger(false);
-		$messenger->template('@biochaos_autopunish/notification_email', $user['user_lang']);
-		$messenger->to($user['user_email'], $user['username']);
-		$messenger->assign_vars([
-			'SUBJECT'  => tier_manager::decode_text($subject),
-			'MESSAGE'  => $this->to_plain_text($body),
-		]);
-		$messenger->send(\NOTIFY_EMAIL);
-	}
-
-	/**
-	 * Turns a PM body into plain text for a plain-text email. The configured
-	 * texts are stored HTML-escaped, the way phpBB's request class returns
-	 * them, and may contain BBCode: the email gets the BBCode stripped and the
-	 * entities decoded, so that "&quot;" and "[b]" do not reach the recipient.
-	 */
-	private function to_plain_text($text)
-	{
-		if (!function_exists('generate_text_for_storage'))
-		{
-			include($this->phpbb_root_path . 'includes/functions_content.' . $this->php_ext);
-		}
-
-		$uid = $bitfield = '';
-		$flags = 0;
-		\generate_text_for_storage($text, $uid, $bitfield, $flags, true, false, false);
-		\strip_bbcode($text, $uid);
-
-		return tier_manager::decode_text($text);
 	}
 }

@@ -81,9 +81,9 @@
 		</dt>
 		<dd>
 			<!-- IF U_LIVE_SEARCH -->
-			<input type="text" id="autopunish_notify_sender_username" name="autopunish_notify_sender_username" value="{AUTOPUNISH_NOTIFY_SENDER_USERNAME}" class="inputbox" size="30" autocomplete="off" data-livesearch="{U_LIVE_SEARCH}" data-results="#ap-sender-results" /> <span class="helpline">{L_AUTOPUNISH_NOTIFY_SENDER_AUTOCOMPLETE}</span>
+			<input type="text" id="autopunish_notify_sender_username" name="autopunish_notify_sender_username" value="{AUTOPUNISH_NOTIFY_SENDER_USERNAME|escape('html_attr')}" class="inputbox" size="30" autocomplete="off" data-livesearch="{U_LIVE_SEARCH}" data-results="#ap-sender-results" /> <span class="helpline">{L_AUTOPUNISH_NOTIFY_SENDER_AUTOCOMPLETE}</span>
 			<!-- ELSE -->
-			<input type="text" id="autopunish_notify_sender_username" name="autopunish_notify_sender_username" value="{AUTOPUNISH_NOTIFY_SENDER_USERNAME}" class="inputbox" size="30" />
+			<input type="text" id="autopunish_notify_sender_username" name="autopunish_notify_sender_username" value="{AUTOPUNISH_NOTIFY_SENDER_USERNAME|escape('html_attr')}" class="inputbox" size="30" />
 			<!-- ENDIF -->
 			<!-- IF S_AUTOPUNISH_SENDER_MISSING -->
 			<span class="error">{L_AUTOPUNISH_SENDER_MISSING_WARNING}</span>
@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			<span class="helpline">{L_AUTOPUNISH_NOTIFY_SUBJECT_EXPLAIN}</span>
 		</dt>
 		<dd>
-			<input type="text" id="autopunish_notify_subject" name="autopunish_notify_subject" value="{AUTOPUNISH_NOTIFY_SUBJECT}" class="inputbox" size="60" maxlength="255" /><br />
+			<input type="text" id="autopunish_notify_subject" name="autopunish_notify_subject" value="{AUTOPUNISH_NOTIFY_SUBJECT|escape('html_attr')}" class="inputbox" size="60" maxlength="255" /><br />
 			<span class="helpline">{L_AUTOPUNISH_PLACEHOLDERS_EXPLAIN}</span>
 		</dd>
 	</dl>
@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	<dl>
 		<dt><label for="autopunish_notify_footer">{L_AUTOPUNISH_NOTIFY_FOOTER}</label></dt>
 		<dd>
-			<textarea id="autopunish_notify_footer" name="autopunish_notify_footer" rows="3" cols="60" maxlength="255">{AUTOPUNISH_NOTIFY_FOOTER}</textarea><br />
+			<textarea id="autopunish_notify_footer" name="autopunish_notify_footer" rows="3" cols="60" maxlength="255">{AUTOPUNISH_NOTIFY_FOOTER|escape('html')}</textarea><br />
 			<span class="helpline">{L_AUTOPUNISH_PLACEHOLDERS_EXPLAIN}</span>
 		</dd>
 	</dl>
@@ -201,7 +201,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			<span class="helpline">{L_AUTOPUNISH_NOTIFY_EXPIRY_SUBJECT_EXPLAIN}</span>
 		</dt>
 		<dd>
-			<input type="text" id="autopunish_notify_expiry_subject" name="autopunish_notify_expiry_subject" value="{AUTOPUNISH_NOTIFY_EXPIRY_SUBJECT}" class="inputbox" size="60" maxlength="255" /><br />
+			<input type="text" id="autopunish_notify_expiry_subject" name="autopunish_notify_expiry_subject" value="{AUTOPUNISH_NOTIFY_EXPIRY_SUBJECT|escape('html_attr')}" class="inputbox" size="60" maxlength="255" /><br />
 			<span class="helpline">{L_AUTOPUNISH_PLACEHOLDERS_EXPLAIN}</span>
 		</dd>
 	</dl>
@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	<dl>
 		<dt><label for="autopunish_notify_expiry_text">{L_AUTOPUNISH_NOTIFY_EXPIRY_TEXT}</label></dt>
 		<dd>
-			<textarea id="autopunish_notify_expiry_text" name="autopunish_notify_expiry_text" rows="3" cols="60" maxlength="255">{AUTOPUNISH_NOTIFY_EXPIRY_TEXT}</textarea><br />
+			<textarea id="autopunish_notify_expiry_text" name="autopunish_notify_expiry_text" rows="3" cols="60" maxlength="255">{AUTOPUNISH_NOTIFY_EXPIRY_TEXT|escape('html')}</textarea><br />
 			<span class="helpline">{L_AUTOPUNISH_PLACEHOLDERS_EXPLAIN}</span>
 		</dd>
 	</dl>
@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			<span class="helpline">{L_AUTOPUNISH_NOTIFY_COMMUTE_SUBJECT_EXPLAIN}</span>
 		</dt>
 		<dd>
-			<input type="text" id="autopunish_notify_commute_subject" name="autopunish_notify_commute_subject" value="{AUTOPUNISH_NOTIFY_COMMUTE_SUBJECT}" class="inputbox" size="60" maxlength="255" /><br />
+			<input type="text" id="autopunish_notify_commute_subject" name="autopunish_notify_commute_subject" value="{AUTOPUNISH_NOTIFY_COMMUTE_SUBJECT|escape('html_attr')}" class="inputbox" size="60" maxlength="255" /><br />
 			<span class="helpline">{L_AUTOPUNISH_PLACEHOLDERS_EXPLAIN}</span>
 		</dd>
 	</dl>
@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	<dl>
 		<dt><label for="autopunish_notify_commute_text">{L_AUTOPUNISH_NOTIFY_COMMUTE_TEXT}</label></dt>
 		<dd>
-			<textarea id="autopunish_notify_commute_text" name="autopunish_notify_commute_text" rows="3" cols="60" maxlength="255">{AUTOPUNISH_NOTIFY_COMMUTE_TEXT}</textarea><br />
+			<textarea id="autopunish_notify_commute_text" name="autopunish_notify_commute_text" rows="3" cols="60" maxlength="255">{AUTOPUNISH_NOTIFY_COMMUTE_TEXT|escape('html')}</textarea><br />
 			<span class="helpline">{L_AUTOPUNISH_PLACEHOLDERS_EXPLAIN}</span>
 		</dd>
 	</dl>

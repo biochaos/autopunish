@@ -8,6 +8,7 @@
 
 namespace biochaos\autopunish\acp;
 
+use biochaos\autopunish\service\punishment_manager;
 use biochaos\autopunish\service\tier_manager;
 
 class main_module
@@ -118,7 +119,7 @@ class main_module
 
 			// An unknown mode keeps the one already set.
 			$warn_mode = $request->variable('autopunish_warn_during_punishment', '');
-			if (!in_array($warn_mode, ['restart', 'normal', 'escalate'], true))
+			if (!in_array($warn_mode, punishment_manager::MODES, true))
 			{
 				$warn_mode = $config['autopunish_warn_during_punishment'];
 			}
@@ -203,14 +204,16 @@ class main_module
 			'S_AUTOPUNISH_NOTIFY_FORUM'         => $config['autopunish_notify_forum'],
 			'S_AUTOPUNISH_NOTIFY_PM'            => $config['autopunish_notify_pm'],
 			'S_AUTOPUNISH_NOTIFY_EMAIL'         => $config['autopunish_notify_email'],
-			'AUTOPUNISH_NOTIFY_SENDER_USERNAME' => $sender_username,
+			// Stored the way phpBB's request class returns text, HTML-escaped, and
+			// decoded here for the template to escape, as the Tiers page does.
+			'AUTOPUNISH_NOTIFY_SENDER_USERNAME' => tier_manager::decode_text($sender_username),
 			'S_AUTOPUNISH_SENDER_MISSING'       => $sender_missing,
-			'AUTOPUNISH_NOTIFY_SUBJECT'         => $config['autopunish_notify_subject'],
-			'AUTOPUNISH_NOTIFY_FOOTER'          => $config['autopunish_notify_footer'],
-			'AUTOPUNISH_NOTIFY_EXPIRY_SUBJECT'  => $config['autopunish_notify_expiry_subject'],
-			'AUTOPUNISH_NOTIFY_EXPIRY_TEXT'     => $config['autopunish_notify_expiry_text'],
-			'AUTOPUNISH_NOTIFY_COMMUTE_SUBJECT' => $config['autopunish_notify_commute_subject'],
-			'AUTOPUNISH_NOTIFY_COMMUTE_TEXT'    => $config['autopunish_notify_commute_text'],
+			'AUTOPUNISH_NOTIFY_SUBJECT'         => tier_manager::decode_text($config['autopunish_notify_subject']),
+			'AUTOPUNISH_NOTIFY_FOOTER'          => tier_manager::decode_text($config['autopunish_notify_footer']),
+			'AUTOPUNISH_NOTIFY_EXPIRY_SUBJECT'  => tier_manager::decode_text($config['autopunish_notify_expiry_subject']),
+			'AUTOPUNISH_NOTIFY_EXPIRY_TEXT'     => tier_manager::decode_text($config['autopunish_notify_expiry_text']),
+			'AUTOPUNISH_NOTIFY_COMMUTE_SUBJECT' => tier_manager::decode_text($config['autopunish_notify_commute_subject']),
+			'AUTOPUNISH_NOTIFY_COMMUTE_TEXT'    => tier_manager::decode_text($config['autopunish_notify_commute_text']),
 		]);
 	}
 
@@ -249,7 +252,7 @@ class main_module
 				$duration_value = min(1000000, max(0, (int) ($tier['duration_value'] ?? 0)));
 				$tiers[] = [
 					'warning_threshold' => max(1, (int) ($tier['warning_threshold'] ?? 3)),
-					'action'            => ($tier['action'] ?? 'group') === 'deactivate' ? 'deactivate' : 'group',
+					'action'            => ($tier['action'] ?? tier_manager::ACTION_GROUP) === tier_manager::ACTION_DEACTIVATE ? tier_manager::ACTION_DEACTIVATE : tier_manager::ACTION_GROUP,
 					'group_id'          => (int) ($tier['group_id'] ?? 0),
 					'duration_seconds'  => $this->parse_duration($duration_value, $tier['duration_unit'] ?? 'days'),
 					'reason_text'       => (string) ($tier['reason_text'] ?? ''),
@@ -262,7 +265,7 @@ class main_module
 			// nothing the administrator typed is lost.
 			foreach ($tiers as $i => $tier)
 			{
-				if ($tier['action'] === 'group' && !in_array($tier['group_id'], $group_ids, true))
+				if ($tier['action'] === tier_manager::ACTION_GROUP && !in_array($tier['group_id'], $group_ids, true))
 				{
 					$errors[] = $user->lang('AUTOPUNISH_TIER_GROUP_REQUIRED', $i + 1);
 				}
@@ -295,7 +298,7 @@ class main_module
 			$inactive = [];
 			foreach ($tiers as $i => $tier)
 			{
-				if ($tier['action'] === 'group' && !in_array((int) $tier['group_id'], $group_ids, true))
+				if ($tier['action'] === tier_manager::ACTION_GROUP && !in_array((int) $tier['group_id'], $group_ids, true))
 				{
 					$inactive[] = $i + 1;
 				}

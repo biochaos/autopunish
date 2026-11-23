@@ -6,6 +6,24 @@ services:
             - '@dbal.conn'
             - '%tables.autopunish_tiers%'
 
+    biochaos.autopunish.account_manager:
+        class: biochaos\autopunish\service\account_manager
+        arguments:
+            - '@dbal.conn'
+            - '%core.root_path%'
+            - '%core.php_ext%'
+
+    biochaos.autopunish.notifier:
+        class: biochaos\autopunish\service\notifier
+        arguments:
+            - '@dbal.conn'
+            - '@config'
+            - '@log'
+            - '@notification_manager'
+            - '@user'
+            - '%core.root_path%'
+            - '%core.php_ext%'
+
     biochaos.autopunish.punishment_manager:
         class: biochaos\autopunish\service\punishment_manager
         arguments:
@@ -13,13 +31,12 @@ services:
             - '@config'
             - '@group_helper'
             - '@log'
-            - '@notification_manager'
             - '@user'
             - '@biochaos.autopunish.tier_manager'
+            - '@biochaos.autopunish.account_manager'
+            - '@biochaos.autopunish.notifier'
             - '%tables.autopunish_punishments%'
             - '%tables.autopunish_commutations%'
-            - '%core.root_path%'
-            - '%core.php_ext%'
 
     biochaos.autopunish.retroactive_scanner:
         class: biochaos\autopunish\service\retroactive_scanner

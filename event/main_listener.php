@@ -204,7 +204,7 @@ class main_listener implements EventSubscriberInterface
 			$this->template->assign_block_vars('punishment_history', [
 				'OFFENSE_NUMBER' => $p['offense_number'],
 				'ACTION'         => $this->action_label($p['action']),
-				'GROUP_NAME'     => ($p['action'] === 'group' && $p['group_name'] !== null) ? $this->decode($this->group_helper->get_name($p['group_name'])) : '',
+				'GROUP_NAME'     => ($p['action'] === tier_manager::ACTION_GROUP && $p['group_name'] !== null) ? $this->decode($this->group_helper->get_name($p['group_name'])) : '',
 				'REASON'         => $this->decode($p['reason_text']),
 				'START_TIME'     => $p['start_time'] ? $this->user->format_date($p['start_time']) : '',
 				'END_TIME'       => $p['end_time'] ? $this->user->format_date($p['end_time']) : $this->user->lang('AUTOPUNISH_PERMANENT'),
@@ -227,6 +227,6 @@ class main_listener implements EventSubscriberInterface
 	 */
 	private function action_label($action)
 	{
-		return $this->user->lang($action === 'deactivate' ? 'AUTOPUNISH_ACTION_DEACTIVATE' : 'AUTOPUNISH_ACTION_GROUP');
+		return $this->user->lang($action === tier_manager::ACTION_DEACTIVATE ? 'AUTOPUNISH_ACTION_DEACTIVATE' : 'AUTOPUNISH_ACTION_GROUP');
 	}
 }

@@ -12,7 +12,7 @@ class punishment_commuted extends base_punishment
 {
 	static public $notification_option = [
 		'lang'  => 'NOTIFICATION_TYPE_AUTOPUNISH_COMMUTED',
-		'group' => 'NOTIFICATION_GROUP_MODERATION',
+		'group' => 'NOTIFICATION_GROUP_MISCELLANEOUS',
 	];
 
 	public function get_type()

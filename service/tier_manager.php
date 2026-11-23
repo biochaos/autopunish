@@ -10,6 +10,12 @@ namespace biochaos\autopunish\service;
 
 class tier_manager
 {
+	/** What a tier does: adds the user to a group... */
+	const ACTION_GROUP = 'group';
+
+	/** ...or deactivates the account. These are the values stored in the tables. */
+	const ACTION_DEACTIVATE = 'deactivate';
+
 	/**
 	 * The longest punishment a tier can have, 50 years in seconds. The column
 	 * holds more, but a punishment's end time is the current time plus this and
@@ -96,7 +102,7 @@ class tier_manager
 
 		foreach ($tiers as $order => $tier)
 		{
-			$action = ($tier['action'] === 'deactivate') ? 'deactivate' : 'group';
+			$action = ($tier['action'] === self::ACTION_DEACTIVATE) ? self::ACTION_DEACTIVATE : self::ACTION_GROUP;
 
 			// The tiers page hides the duration of a deactivate tier but still
 			// submits it, so a tier switched from "add to group" would otherwise
@@ -106,7 +112,7 @@ class tier_manager
 				'warning_threshold' => (int) $tier['warning_threshold'],
 				'action'            => $action,
 				'group_id'          => (int) ($tier['group_id'] ?? 0),
-				'duration_seconds'  => ($action === 'deactivate') ? 0 : min(self::MAX_DURATION, max(0, (int) ($tier['duration_seconds'] ?? 0))),
+				'duration_seconds'  => ($action === self::ACTION_DEACTIVATE) ? 0 : min(self::MAX_DURATION, max(0, (int) ($tier['duration_seconds'] ?? 0))),
 				'reason_text'       => self::encode_text($tier['reason_text'] ?? ''),
 				'notification_text' => self::encode_text($tier['notification_text'] ?? ''),
 			];
